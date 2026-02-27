@@ -3,224 +3,611 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>EMT 病人交接回報平台｜Demo</title>
+<title>EMT 起單 → 醫院回報｜Demo</title>
 
 <style>
 :root{
-  --primary:#0f766e;      /* 醫療綠 */
-  --secondary:#334155;    /* 深灰 */
+  --primary:#0f766e;
   --bg:#f1f5f9;
   --card:#ffffff;
   --border:#e2e8f0;
+  --text:#0f172a;
   --muted:#64748b;
+  --ok:#16a34a;
+  --warn:#f59e0b;
 }
+
+*{ box-sizing:border-box; }
 
 body{
   margin:0;
-  padding:24px;
+  padding:20px;
   background:var(--bg);
+  color:var(--text);
   font-family:-apple-system,BlinkMacSystemFont,"Noto Sans TC",sans-serif;
-  color:#0f172a;
 }
 
-/* ===== 容器 ===== */
 .container{
-  max-width:900px;
+  max-width:1100px;
   margin:0 auto;
 }
 
-/* ===== 標題 ===== */
 .header{
-  margin-bottom:16px;
-}
-.header h1{
-  font-size:22px;
-  margin:0;
-}
-.header p{
-  margin:4px 0 0;
-  color:var(--muted);
-  font-size:14px;
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-end;
+  gap:12px;
+  margin-bottom:14px;
 }
 
-/* ===== 卡片 ===== */
+.header h1{
+  margin:0;
+  font-size:20px;
+}
+.header p{
+  margin:6px 0 0;
+  color:var(--muted);
+  font-size:13px;
+}
+
+.grid{
+  display:grid;
+  grid-template-columns: 420px 1fr;
+  gap:14px;
+}
+
+@media (max-width: 980px){
+  .grid{ grid-template-columns:1fr; }
+}
+
 .card{
   background:var(--card);
   border:1px solid var(--border);
   border-radius:14px;
-  padding:20px;
-  margin-bottom:20px;
-  box-shadow:0 8px 20px rgba(0,0,0,0.04);
+  padding:16px;
+  box-shadow:0 10px 24px rgba(0,0,0,0.04);
 }
 
-/* ===== 區塊標題 ===== */
 .section-title{
-  font-size:16px;
-  font-weight:600;
-  margin-bottom:12px;
   display:flex;
   align-items:center;
-  gap:8px;
+  justify-content:space-between;
+  gap:10px;
+  margin-bottom:12px;
 }
+
+.section-title h2{
+  margin:0;
+  font-size:15px;
+}
+
 .badge{
   font-size:12px;
-  padding:2px 8px;
+  padding:3px 10px;
   border-radius:999px;
-  background:#ecfeff;
-  color:var(--primary);
-  border:1px solid #99f6e4;
-}
-
-/* ===== 資料表格 ===== */
-.info-grid{
-  display:grid;
-  grid-template-columns:140px 1fr;
-  row-gap:10px;
-  column-gap:12px;
-  font-size:14px;
-}
-.label{
-  color:var(--muted);
-}
-.value{
-  font-weight:500;
-}
-
-/* ===== 表單 ===== */
-.form-group{
-  margin-bottom:14px;
-}
-.form-group label{
-  display:block;
-  font-size:14px;
-  margin-bottom:6px;
-}
-textarea, select{
-  width:100%;
-  box-sizing:border-box;
-  padding:10px;
-  font-size:14px;
-  border-radius:8px;
   border:1px solid var(--border);
-  resize:vertical;
-}
-textarea{
-  min-height:80px;
+  color:var(--muted);
+  background:#fff;
 }
 
-/* ===== 按鈕 ===== */
-.actions{
-  text-align:right;
+label{
+  display:block;
+  font-size:13px;
+  color:#111827;
+  margin:10px 0 6px;
 }
-button{
-  background:var(--primary);
-  color:#fff;
-  border:none;
-  padding:10px 18px;
+
+input, textarea, select{
+  width:100%;
+  padding:10px;
+  border:1px solid var(--border);
   border-radius:10px;
   font-size:14px;
-  cursor:pointer;
-}
-button:hover{
-  opacity:0.9;
+  background:#fff;
 }
 
-/* ===== 成功提示 ===== */
-.success{
-  display:none;
+textarea{ min-height:72px; resize:vertical; }
+
+.row2{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap:10px;
+}
+@media (max-width: 520px){
+  .row2{ grid-template-columns:1fr; }
+}
+
+.actions{
+  display:flex;
+  gap:10px;
+  justify-content:flex-end;
   margin-top:12px;
-  padding:10px;
-  border-radius:8px;
-  background:#ecfeff;
-  border:1px solid #67e8f9;
-  color:#065f46;
+}
+
+button{
+  border:none;
+  padding:10px 14px;
+  border-radius:10px;
+  cursor:pointer;
   font-size:14px;
+}
+
+.btn-primary{
+  background:var(--primary);
+  color:#fff;
+}
+.btn-ghost{
+  background:#fff;
+  border:1px solid var(--border);
+  color:#111827;
+}
+
+.small{
+  font-size:12px;
+  color:var(--muted);
+  margin-top:8px;
+}
+
+.list{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+
+.task-item{
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:12px;
+  background:#fff;
+  cursor:pointer;
+  transition:transform .08s ease, box-shadow .08s ease;
+}
+.task-item:hover{
+  transform:translateY(-1px);
+  box-shadow:0 10px 18px rgba(0,0,0,0.06);
+}
+
+.task-top{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:10px;
+}
+
+.task-id{
+  font-weight:700;
+  letter-spacing:0.2px;
+}
+.task-meta{
+  color:var(--muted);
+  font-size:12px;
+  margin-top:4px;
+}
+
+.status{
+  font-size:12px;
+  padding:3px 8px;
+  border-radius:999px;
+  border:1px solid var(--border);
+  white-space:nowrap;
+}
+.status.pending{
+  background:#fff7ed;
+  border-color:#fed7aa;
+  color:#9a3412;
+}
+.status.reported{
+  background:#ecfdf5;
+  border-color:#bbf7d0;
+  color:#166534;
+}
+
+hr.sep{
+  border:none;
+  border-top:1px solid var(--border);
+  margin:12px 0;
+}
+
+.kv{
+  display:grid;
+  grid-template-columns: 130px 1fr;
+  gap:8px 10px;
+  font-size:14px;
+}
+.kv .k{ color:var(--muted); }
+.kv .v{ font-weight:600; }
+
+.note{
+  background:#f8fafc;
+  border:1px dashed #cbd5e1;
+  padding:10px;
+  border-radius:12px;
+  color:#334155;
+  font-size:13px;
+}
+
+.toast{
+  display:none;
+  margin-top:10px;
+  padding:10px 12px;
+  border-radius:10px;
+  border:1px solid #99f6e4;
+  background:#ecfeff;
+  color:#065f46;
+  font-size:13px;
 }
 </style>
 </head>
 
 <body>
 <div class="container">
-
-  <!-- ===== 標題 ===== -->
   <div class="header">
-    <h1>🚑 EMT → 醫院病人交接回報平台（Demo）</h1>
-    <p>示範流程：EMT 建案後，由醫院端回報病人處置 / 治療 / 動向</p>
+    <div>
+      <h1>🚑 起單（EMT）→ 回報（醫院端）｜任務卡 Demo</h1>
+      <p>流程：EMT 填表建立任務 → 系統產生任務編號 → 醫院端點選任務卡 → 填寫處置/治療/動向 → 儲存回報</p>
+    </div>
+    <div class="badge" id="countBadge">任務數：0</div>
   </div>
 
-  <!-- ===== EMT 建立的個案資料 ===== -->
-  <div class="card">
-    <div class="section-title">
-      EMT 個案資料
-      <span class="badge">唯讀</span>
+  <div class="grid">
+    <!-- =========================
+         左：EMT 起單區
+    ========================= -->
+    <div class="card">
+      <div class="section-title">
+        <h2>EMT 起單（建立新任務）</h2>
+        <span class="badge">填表 → 建立任務</span>
+      </div>
+
+      <label>姓名</label>
+      <input id="f_name" value="楊*盛" />
+
+      <label>地址</label>
+      <input id="f_addr" value="新北市平溪區十分街214號之3（1樓）" />
+
+      <div class="row2">
+        <div>
+          <label>性別</label>
+          <select id="f_sex">
+            <option>男性</option>
+            <option>女性</option>
+            <option>其他</option>
+          </select>
+        </div>
+        <div>
+          <label>年齡</label>
+          <input id="f_age" type="number" value="80" />
+        </div>
+      </div>
+
+      <label>報案日期時間</label>
+      <input id="f_calltime" value="2026/02/10 14:17" />
+
+      <label>主訴</label>
+      <input id="f_cc" value="喘" />
+
+      <label>後送醫院</label>
+      <input id="f_hospital" value="北市立萬芳醫院" />
+
+      <div class="actions">
+        <button class="btn-ghost" onclick="resetDemo()">清空 Demo 資料</button>
+        <button class="btn-primary" onclick="createTask()">建立任務</button>
+      </div>
+
+      <div class="small">
+        任務編號格式：<b>EMS-YYYYMMDD-流水號</b>（Demo 產生）<br/>
+        資料保存在瀏覽器 localStorage（Demo 用，非正式上線）
+      </div>
+
+      <div class="toast" id="toastLeft">✅ 任務已建立</div>
     </div>
 
-    <div class="info-grid">
-      <div class="label">姓名</div>
-      <div class="value">楊*盛</div>
+    <!-- =========================
+         右：任務清單 + 醫院端回報
+    ========================= -->
+    <div class="card">
+      <div class="section-title">
+        <h2>醫院端任務清單（點選開啟卡片回報）</h2>
+        <span class="badge" id="selectedBadge">尚未選取</span>
+      </div>
 
-      <div class="label">性別 / 年齡</div>
-      <div class="value">男性 / 80 歲</div>
+      <div class="list" id="taskList"></div>
 
-      <div class="label">地址</div>
-      <div class="value">新北市平溪區十分街214號之3（1樓）</div>
+      <hr class="sep"/>
 
-      <div class="label">報案時間</div>
-      <div class="value">2026/02/10 14:17</div>
+      <div id="detailEmpty" class="note">
+        👆 請先在上方任務清單點選一筆任務，這裡會顯示個案卡與醫院回報欄位。
+      </div>
 
-      <div class="label">主訴</div>
-      <div class="value">喘</div>
+      <div id="detailPanel" style="display:none;">
+        <div class="kv" id="detailKV"></div>
 
-      <div class="label">後送醫院</div>
-      <div class="value">北市立萬芳醫院</div>
+        <hr class="sep"/>
+
+        <div class="section-title" style="margin-bottom:6px;">
+          <h2 style="font-size:15px;margin:0;">醫院端回報</h2>
+          <span class="badge" id="statusBadge">待回報</span>
+        </div>
+
+        <label>處置（Treatment）</label>
+        <textarea id="r_treatment" placeholder="例：給予氧氣 10 L/min NRBM，監測生命徵象"></textarea>
+
+        <label>治療（Management）</label>
+        <textarea id="r_management" placeholder="例：抽血檢驗、安排胸部 X 光、給予支氣管擴張劑"></textarea>
+
+        <label>病人動向（Disposition）</label>
+        <select id="r_disposition">
+          <option value="">請選擇</option>
+          <option>急診留觀</option>
+          <option>一般病房住院</option>
+          <option>加護病房</option>
+          <option>轉院</option>
+          <option>出院</option>
+        </select>
+
+        <div class="actions">
+          <button class="btn-ghost" onclick="clearReport()">清空回報欄位</button>
+          <button class="btn-primary" onclick="saveReport()">送出回報</button>
+        </div>
+
+        <div class="toast" id="toastRight">✅ 回報已儲存（Demo）</div>
+      </div>
     </div>
   </div>
-
-  <!-- ===== 醫院端回報 ===== -->
-  <div class="card">
-    <div class="section-title">
-      醫院端回報
-      <span class="badge">填寫</span>
-    </div>
-
-    <div class="form-group">
-      <label>處置（Treatment）</label>
-      <textarea placeholder="例：給予氧氣 10 L/min NRBM，監測生命徵象"></textarea>
-    </div>
-
-    <div class="form-group">
-      <label>治療（Management）</label>
-      <textarea placeholder="例：給予支氣管擴張劑，抽血檢驗，安排胸部 X 光"></textarea>
-    </div>
-
-    <div class="form-group">
-      <label>病人動向（Disposition）</label>
-      <select>
-        <option>請選擇</option>
-        <option>急診留觀</option>
-        <option>一般病房住院</option>
-        <option>加護病房</option>
-        <option>轉院</option>
-        <option>出院</option>
-      </select>
-    </div>
-
-    <div class="actions">
-      <button onclick="submitDemo()">送出回報</button>
-    </div>
-
-    <div class="success" id="successBox">
-      ✅ 回報已送出（Demo 模擬成功）
-    </div>
-  </div>
-
 </div>
 
 <script>
-function submitDemo(){
-  document.getElementById('successBox').style.display = 'block';
-}
-</script>
+/* =========================
+   Demo 資料儲存（localStorage）
+========================= */
+const STORE_KEY = "EMS_TASK_DEMO_V1";
 
+function loadStore(){
+  try{
+    return JSON.parse(localStorage.getItem(STORE_KEY) || "[]");
+  }catch{
+    return [];
+  }
+}
+function saveStore(arr){
+  localStorage.setItem(STORE_KEY, JSON.stringify(arr));
+}
+
+/* =========================
+   任務編號生成：EMS-YYYYMMDD-0001
+========================= */
+function pad(n, len=4){
+  const s = String(n);
+  return s.length >= len ? s : "0".repeat(len - s.length) + s;
+}
+function ymdFromCallTime(callTime){
+  // 期待格式：YYYY/MM/DD HH:mm
+  // Demo 先用簡單替換，真上線可以改更嚴謹
+  const part = String(callTime || "").split(" ")[0] || "";
+  return part.replaceAll("/", "");
+}
+function nextSerialForDate(tasks, ymd){
+  const same = tasks.filter(t => t.taskId.startsWith(`EMS-${ymd}-`));
+  if (same.length === 0) return 1;
+  const nums = same.map(t => {
+    const m = t.taskId.match(/-(\d{4})$/);
+    return m ? parseInt(m[1],10) : 0;
+  });
+  return Math.max(...nums) + 1;
+}
+
+/* =========================
+   UI 狀態
+========================= */
+let TASKS = loadStore();
+let SELECTED_ID = null;
+
+function setToast(id, on){
+  const el = document.getElementById(id);
+  el.style.display = on ? "block" : "none";
+  if(on){
+    setTimeout(() => { el.style.display = "none"; }, 1300);
+  }
+}
+
+/* =========================
+   EMT 建立任務
+========================= */
+function createTask(){
+  const name = document.getElementById("f_name").value.trim();
+  const addr = document.getElementById("f_addr").value.trim();
+  const sex = document.getElementById("f_sex").value.trim();
+  const age = document.getElementById("f_age").value.trim();
+  const callTime = document.getElementById("f_calltime").value.trim();
+  const cc = document.getElementById("f_cc").value.trim();
+  const hospital = document.getElementById("f_hospital").value.trim();
+
+  // Demo：最基本檢核
+  if(!name || !callTime || !hospital){
+    alert("請至少填：姓名、報案時間、後送醫院（Demo）");
+    return;
+  }
+
+  const ymd = ymdFromCallTime(callTime) || "00000000";
+  const serial = nextSerialForDate(TASKS, ymd);
+  const taskId = `EMS-${ymd}-${pad(serial, 4)}`;
+
+  const newTask = {
+    taskId,
+    createdAt: new Date().toISOString(),
+    patient: { name, addr, sex, age, callTime, cc, hospital },
+    report: {
+      status: "pending", // pending / reported
+      treatment: "",
+      management: "",
+      disposition: "",
+      reportedAt: ""
+    }
+  };
+
+  TASKS.unshift(newTask);
+  saveStore(TASKS);
+  renderList();
+  setToast("toastLeft", true);
+
+  // 自動選取剛建立的
+  openTask(taskId);
+}
+
+/* =========================
+   任務清單渲染
+========================= */
+function formatDT(iso){
+  try{
+    const d = new Date(iso);
+    // 不做時區複雜化，Demo 可用
+    return d.toLocaleString("zh-TW", { hour12:false });
+  }catch{
+    return iso || "-";
+  }
+}
+function renderList(){
+  const list = document.getElementById("taskList");
+  list.innerHTML = "";
+
+  document.getElementById("countBadge").textContent = `任務數：${TASKS.length}`;
+
+  if(TASKS.length === 0){
+    list.innerHTML = `<div class="note">目前沒有任務。請在左側用 EMT 表單建立一筆。</div>`;
+    closeDetail();
+    return;
+  }
+
+  for(const t of TASKS){
+    const statusClass = t.report.status === "reported" ? "reported" : "pending";
+    const statusText = t.report.status === "reported" ? "已回報" : "待回報";
+
+    const div = document.createElement("div");
+    div.className = "task-item";
+    div.onclick = () => openTask(t.taskId);
+
+    div.innerHTML = `
+      <div class="task-top">
+        <div>
+          <div class="task-id">${t.taskId}</div>
+          <div class="task-meta">${t.patient.name}｜${t.patient.sex} ${t.patient.age}歲｜主訴：${t.patient.cc}</div>
+          <div class="task-meta">到院：${t.patient.hospital}｜報案：${t.patient.callTime}</div>
+        </div>
+        <div class="status ${statusClass}">${statusText}</div>
+      </div>
+    `;
+    list.appendChild(div);
+  }
+}
+
+/* =========================
+   開啟任務（醫院端點開卡片）
+========================= */
+function openTask(taskId){
+  SELECTED_ID = taskId;
+  const t = TASKS.find(x => x.taskId === taskId);
+  if(!t) return;
+
+  document.getElementById("selectedBadge").textContent = `已選取：${taskId}`;
+
+  // 顯示明細
+  document.getElementById("detailEmpty").style.display = "none";
+  document.getElementById("detailPanel").style.display = "block";
+
+  // KV 顯示
+  const kv = document.getElementById("detailKV");
+  kv.innerHTML = `
+    <div class="k">任務編號</div><div class="v">${t.taskId}</div>
+    <div class="k">姓名</div><div class="v">${t.patient.name}</div>
+    <div class="k">性別 / 年齡</div><div class="v">${t.patient.sex} / ${t.patient.age}歲</div>
+    <div class="k">地址</div><div class="v">${t.patient.addr}</div>
+    <div class="k">報案時間</div><div class="v">${t.patient.callTime}</div>
+    <div class="k">主訴</div><div class="v">${t.patient.cc}</div>
+    <div class="k">後送醫院</div><div class="v">${t.patient.hospital}</div>
+    <div class="k">建立時間</div><div class="v">${formatDT(t.createdAt)}</div>
+  `;
+
+  // 回報欄位帶入（若已回報可看到之前填的）
+  document.getElementById("r_treatment").value = t.report.treatment || "";
+  document.getElementById("r_management").value = t.report.management || "";
+  document.getElementById("r_disposition").value = t.report.disposition || "";
+
+  updateStatusBadge(t.report.status, t.report.reportedAt);
+}
+
+function updateStatusBadge(status, reportedAt){
+  const el = document.getElementById("statusBadge");
+  if(status === "reported"){
+    el.textContent = reportedAt ? `已回報｜${reportedAt}` : "已回報";
+    el.style.borderColor = "#bbf7d0";
+    el.style.background = "#ecfdf5";
+    el.style.color = "#166534";
+  }else{
+    el.textContent = "待回報";
+    el.style.borderColor = "#fed7aa";
+    el.style.background = "#fff7ed";
+    el.style.color = "#9a3412";
+  }
+}
+
+/* =========================
+   儲存回報（醫院端）
+========================= */
+function saveReport(){
+  if(!SELECTED_ID){
+    alert("請先從任務清單選一筆（Demo）");
+    return;
+  }
+  const t = TASKS.find(x => x.taskId === SELECTED_ID);
+  if(!t) return;
+
+  t.report.treatment = document.getElementById("r_treatment").value.trim();
+  t.report.management = document.getElementById("r_management").value.trim();
+  t.report.disposition = document.getElementById("r_disposition").value;
+
+  // Demo：要求至少填一項
+  if(!t.report.treatment && !t.report.management && !t.report.disposition){
+    alert("至少填寫一項回報內容（處置/治療/動向）");
+    return;
+  }
+
+  t.report.status = "reported";
+  t.report.reportedAt = new Date().toLocaleString("zh-TW", { hour12:false });
+
+  saveStore(TASKS);
+  renderList();
+  openTask(t.taskId); // 重新載入明細與狀態
+  setToast("toastRight", true);
+}
+
+function clearReport(){
+  document.getElementById("r_treatment").value = "";
+  document.getElementById("r_management").value = "";
+  document.getElementById("r_disposition").value = "";
+}
+
+/* =========================
+   清空 Demo
+========================= */
+function resetDemo(){
+  if(!confirm("確定要清空 Demo 任務資料嗎？（只影響你的瀏覽器）")) return;
+  TASKS = [];
+  SELECTED_ID = null;
+  saveStore(TASKS);
+  renderList();
+}
+
+function closeDetail(){
+  SELECTED_ID = null;
+  document.getElementById("selectedBadge").textContent = "尚未選取";
+  document.getElementById("detailEmpty").style.display = "block";
+  document.getElementById("detailPanel").style.display = "none";
+}
+
+/* =========================
+   初始渲染
+========================= */
+renderList();
+</script>
 </body>
 </html>
