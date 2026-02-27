@@ -7,87 +7,266 @@
 
 <style>
 :root{
-  --primary:#b91c1c;
-  --soft:#fee2e2;
-  --bg:#fff1f2;
+  --primary:#b91c1c;        /* EMS 急救紅 */
+  --primary-2:#ef4444;      /* 亮紅 */
+  --pink:#fb7185;           /* 粉紅 */
+  --bg:#fff1f2;             /* 淡粉背景 */
+  --card:#ffffff;
   --border:#fecaca;
   --text:#7f1d1d;
   --muted:#9f1239;
+  --shadow:rgba(185,28,28,.14);
+
+  --pending-bg:#fff7ed;
+  --pending-bd:#fed7aa;
+  --pending-tx:#9a3412;
+
+  --done-bg:#fee2e2;
+  --done-bd:#fecaca;
+  --done-tx:#7f1d1d;
 }
 
+*{ box-sizing:border-box; }
 body{
   margin:0;
-  padding:20px;
-  background:var(--bg);
+  padding:18px;
+  background:linear-gradient(180deg,var(--bg),#ffffff 65%);
   font-family:-apple-system,BlinkMacSystemFont,"Noto Sans TC",sans-serif;
   color:var(--text);
 }
 
-.container{ max-width:1200px; margin:auto; }
+.container{
+  max-width:1240px;
+  margin:0 auto;
+}
 
-.header{
+/* ===== Header ===== */
+.topbar{
   display:flex;
+  align-items:flex-start;
   justify-content:space-between;
-  align-items:center;
+  gap:12px;
   margin-bottom:14px;
 }
-
-h1{ margin:0; font-size:22px; }
-
-button{
-  border:none;
-  border-radius:10px;
-  padding:8px 14px;
-  background:var(--primary);
-  color:white;
-  cursor:pointer;
+.title-wrap h1{
+  margin:0;
+  font-size:22px;
+  letter-spacing:.2px;
 }
-
-.card{
-  background:white;
+.title-wrap p{
+  margin:6px 0 0;
+  color:var(--muted);
+  font-size:13px;
+  line-height:1.5;
+}
+.actions-wrap{
+  display:flex;
+  gap:10px;
+  align-items:center;
+  flex-wrap:wrap;
+}
+.pill{
+  font-size:12px;
+  padding:6px 10px;
+  border-radius:999px;
   border:1px solid var(--border);
-  border-radius:14px;
-  padding:14px;
+  background:#fff;
+  color:var(--muted);
+  white-space:nowrap;
+}
+.btn{
+  border:none;
+  border-radius:12px;
+  padding:9px 12px;
+  background:var(--primary);
+  color:#fff;
+  font-size:14px;
+  cursor:pointer;
+  box-shadow:0 10px 18px var(--shadow);
+}
+.btn:hover{ opacity:.92; }
+.btn-ghost{
+  background:#fff;
+  color:var(--text);
+  border:1px solid var(--border);
+  box-shadow:none;
 }
 
-.search{
+/* ===== Layout ===== */
+.grid{
+  display:grid;
+  grid-template-columns: 390px 1fr;
+  gap:16px;
+}
+@media(max-width:980px){
+  .grid{ grid-template-columns:1fr; }
+}
+
+/* ===== Card ===== */
+.card{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:16px;
+  padding:16px;
+  box-shadow:0 14px 26px var(--shadow);
+}
+.card h2{
+  margin:0 0 10px;
+  font-size:15px;
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+.hint{
+  color:var(--muted);
+  font-size:12px;
+  margin-top:-2px;
+}
+
+/* ===== EMS icon band ===== */
+.banner{
+  border:1px dashed #fecaca;
+  background:linear-gradient(90deg,#fff5f5,#ffffff);
+  border-radius:14px;
+  padding:10px 12px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
   margin-bottom:12px;
 }
-.search input{
+.banner .left{
+  display:flex;
+  gap:10px;
+  align-items:center;
+}
+.amb{
+  width:34px;height:34px;
+  border-radius:12px;
+  background:linear-gradient(180deg,var(--primary-2),var(--primary));
+  display:grid;
+  place-items:center;
+  color:#fff;
+  font-weight:800;
+  box-shadow:0 10px 16px var(--shadow);
+}
+.banner .txt{
+  font-size:12px;
+  color:var(--muted);
+  line-height:1.4;
+}
+.banner .right{
+  font-size:12px;
+  color:var(--muted);
+}
+
+/* ===== Form ===== */
+label{
+  display:block;
+  font-size:13px;
+  margin:10px 0 6px;
+  color:var(--text);
+}
+input, textarea, select{
   width:100%;
   padding:10px;
-  border-radius:10px;
+  border-radius:12px;
   border:1px solid var(--border);
+  font-size:14px;
+  background:#fff;
+}
+input[readonly]{
+  background:#fff5f5;
+  color:var(--text);
+}
+textarea{ min-height:76px; resize:vertical; }
+
+.row2{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+}
+@media(max-width:520px){
+  .row2{ grid-template-columns:1fr; }
 }
 
-/* ===== Task ===== */
+.form-actions{
+  display:flex;
+  justify-content:flex-end;
+  gap:10px;
+  margin-top:12px;
+}
+
+.toast{
+  display:none;
+  margin-top:10px;
+  padding:10px 12px;
+  border-radius:12px;
+  border:1px solid #fda4af;
+  background:#fff5f5;
+  color:var(--text);
+  font-size:13px;
+}
+
+/* ===== Search ===== */
+.searchbar{
+  display:flex;
+  gap:10px;
+  align-items:center;
+  margin-bottom:12px;
+}
+.searchbar input{
+  flex:1;
+}
+.count{
+  font-size:12px;
+  padding:6px 10px;
+  border-radius:999px;
+  border:1px solid var(--border);
+  background:#fff;
+  color:var(--muted);
+  white-space:nowrap;
+}
+
+/* ===== Task list ===== */
 .task{
   border:1px solid var(--border);
-  border-radius:12px;
-  margin-bottom:12px;
+  border-radius:14px;
   overflow:hidden;
+  margin-bottom:12px;
+  background:#fff;
 }
-
 .task-header{
-  padding:12px;
+  padding:12px 12px;
   display:flex;
   justify-content:space-between;
+  align-items:flex-start;
+  gap:12px;
   cursor:pointer;
-  background:#fffafa;
+  background:linear-gradient(90deg,#fff5f5,#ffffff);
 }
-
-.task-header:hover{ background:#fff1f2; }
-
-.task-id{ font-weight:700; }
-.meta{ font-size:12px; margin-top:4px; }
-
+.task-header:hover{
+  background:#fff1f2;
+}
+.task-left .task-id{
+  font-weight:800;
+  letter-spacing:.2px;
+}
+.task-left .meta{
+  margin-top:4px;
+  font-size:12px;
+  color:var(--muted);
+  line-height:1.35;
+}
 .badge{
   font-size:12px;
   padding:4px 10px;
   border-radius:999px;
+  border:1px solid var(--border);
+  white-space:nowrap;
 }
-.pending{ background:#fff7ed; }
-.done{ background:#fee2e2; }
+.badge.pending{ background:var(--pending-bg); border-color:var(--pending-bd); color:var(--pending-tx); }
+.badge.done{ background:var(--done-bg); border-color:var(--done-bd); color:var(--done-tx); }
 
 .task-body{
   display:none;
@@ -98,108 +277,597 @@ button{
 
 .kv{
   display:grid;
-  grid-template-columns:120px 1fr;
-  gap:6px 10px;
+  grid-template-columns: 140px 1fr;
+  gap:8px 12px;
   font-size:14px;
 }
+.kv .k{ color:var(--muted); }
+.kv .v{ font-weight:650; color:#7f1d1d; }
 
-hr{ border:none; border-top:1px solid var(--border); margin:10px 0; }
+.sep{
+  border:none;
+  border-top:1px solid var(--border);
+  margin:12px 0;
+}
+
+.subhead{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+  margin:6px 0 8px;
+}
+.subhead b{ font-size:14px; }
+.small-muted{ font-size:12px; color:var(--muted); }
+
+.inline-actions{
+  display:flex;
+  justify-content:flex-end;
+  gap:10px;
+  margin-top:10px;
+}
+
+.lock-note{
+  border:1px dashed #fda4af;
+  background:#fff5f5;
+  padding:10px 12px;
+  border-radius:12px;
+  color:var(--muted);
+  font-size:13px;
+}
 </style>
 </head>
 
 <body>
 <div class="container">
-
-<div class="header">
-  <h1>🚑 EMS 資訊橋接平台｜Demo</h1>
-  <button onclick="toggleLogin()" id="loginBtn">🔓 未登入</button>
-</div>
-
-<div class="card">
-  <div class="search">
-    <input id="search" placeholder="搜尋 任務編號 / 姓名 / 主訴" oninput="render()" />
+  <div class="topbar">
+    <div class="title-wrap">
+      <h1>🚑 EMS 資訊橋接平台｜Demo</h1>
+      <p>
+        流程：EMT 起單建立任務 → 產生任務編號 → 醫院端任務清單搜尋/開合 →（登入後）填寫回報 → 狀態更新為已回報。<br>
+        個資保護：未登入僅顯示「可辨識但不可定位身分」的摘要；登入後才能看完整個資與操作回報。
+      </p>
+    </div>
+    <div class="actions-wrap">
+      <span class="pill" id="authPill">🔓 未登入（摘要模式）</span>
+      <button class="btn" id="loginBtn" onclick="toggleLogin()">🔐 醫院端登入</button>
+      <button class="btn btn-ghost" onclick="resetDemo()">清空 Demo 資料</button>
+    </div>
   </div>
-  <div id="list"></div>
-</div>
 
+  <div class="grid">
+    <!-- =========================
+         EMT 起單
+    ========================= -->
+    <div class="card">
+      <div class="banner">
+        <div class="left">
+          <div class="amb">EMS</div>
+          <div class="txt">
+            <b>院前救護起單</b><br>
+            EMT 建立案件後，系統產生任務編號供院內追蹤與回報。
+          </div>
+        </div>
+        <div class="right">🚨 Prehospital</div>
+      </div>
+
+      <h2>EMT 起單（建立新任務）</h2>
+      <div class="hint">後送醫院固定為「北市立萬芳醫院」；報案時間採用可點選格式，避免手打錯誤。</div>
+
+      <label>姓名</label>
+      <input id="f_name" value="" placeholder="例：楊*盛">
+
+      <div class="row2">
+        <div>
+          <label>性別</label>
+          <select id="f_sex">
+            <option value="男性">男性</option>
+            <option value="女性">女性</option>
+            <option value="其他">其他</option>
+          </select>
+        </div>
+        <div>
+          <label>年齡</label>
+          <input id="f_age" type="number" value="" placeholder="例：80">
+        </div>
+      </div>
+
+      <label>地址</label>
+      <input id="f_addr" value="" placeholder="例：新北市平溪區十分街214號之3（1樓）">
+
+      <label>報案日期時間（可點選）</label>
+      <input id="f_calltime" type="datetime-local" value="">
+
+      <label>主訴</label>
+      <input id="f_cc" value="" placeholder="例：喘">
+
+      <label>後送醫院（寫死）</label>
+      <input id="f_hospital" value="北市立萬芳醫院" readonly>
+
+      <div class="form-actions">
+        <button class="btn btn-ghost" onclick="clearForm()">清空表單</button>
+        <button class="btn" onclick="createTask()">建立任務</button>
+      </div>
+
+      <div class="toast" id="toastLeft">✅ 任務已建立（Demo）</div>
+    </div>
+
+    <!-- =========================
+         醫院端任務清單
+    ========================= -->
+    <div class="card">
+      <h2>醫院端任務清單（可搜尋 / 卡片開合 / 待回報可填）</h2>
+
+      <div class="searchbar">
+        <input id="search" placeholder="搜尋：任務編號 / 姓名 / 主訴 / 地址片段（Demo）" oninput="renderList()">
+        <div class="count" id="countBadge">任務數：0</div>
+      </div>
+
+      <div id="taskList"></div>
+
+      <div class="toast" id="toastRight">✅ 回報已儲存（Demo）</div>
+    </div>
+  </div>
 </div>
 
 <script>
-let loggedIn = false;
-
-const tasks = [
-  {
-    id:"EMS-20260210-0001",
-    p:{name:"楊*盛",sex:"男性",age:80,addr:"新北市平溪區十分街214號",time:"2026/02/10 14:17",cc:"喘"},
-    r:{}
-  },
-  {
-    id:"EMS-20260210-0002",
-    p:{name:"林*德",sex:"男性",age:65,addr:"新北市板橋區文化路",time:"2026/02/10 15:02",cc:"胸痛"},
-    r:{t:"給氧",m:"抽血",d:"急診留觀"}
-  }
-];
-
-function maskName(n){
-  if(loggedIn) return n;
-  return n[0] + "○" + n[n.length-1];
+/* =========================
+   儲存（localStorage）
+========================= */
+const STORE_KEY = "EMS_BRIDGE_DEMO_V2";
+function loadStore(){
+  try { return JSON.parse(localStorage.getItem(STORE_KEY) || "null"); }
+  catch { return null; }
 }
-function maskAddr(a){
-  if(loggedIn) return a;
-  return a.slice(0,6) + "＊＊＊";
+function saveStore(state){
+  localStorage.setItem(STORE_KEY, JSON.stringify(state));
 }
 
-function toggleLogin(){
-  loggedIn = !loggedIn;
-  document.getElementById("loginBtn").innerText = loggedIn ? "🔐 醫院端登入" : "🔓 未登入";
-  render();
-}
-
-function render(){
-  const q = document.getElementById("search").value;
-  list.innerHTML = "";
-
-  tasks.filter(t=>{
-    const s = `${t.id}${t.p.name}${t.p.cc}`;
-    return s.includes(q);
-  }).forEach((t,i)=>{
-    const done=!!t.r.d;
-    list.innerHTML+=`
-    <div class="task">
-      <div class="task-header" onclick="${loggedIn?`toggle(${i})`:''}">
-        <div>
-          <div class="task-id">${t.id}</div>
-          <div class="meta">
-            ${maskName(t.p.name)}｜${t.p.sex} ${t.p.age}歲｜${t.p.cc}<br>
-            ${t.p.time}
-          </div>
-        </div>
-        <span class="badge ${done?'done':'pending'}">${done?'已回報':'待回報'}</span>
-      </div>
-      ${
-        loggedIn
-        ? `<div class="task-body" id="b${i}">
-            <div class="kv">
-              <div>姓名</div><div>${t.p.name}</div>
-              <div>地址</div><div>${t.p.addr}</div>
-              <div>主訴</div><div>${t.p.cc}</div>
-              <div>後送醫院</div><div>北市立萬芳醫院</div>
-            </div>
-            <hr>
-            ${done?`處置：${t.r.t}<br>治療：${t.r.m}<br>動向：${t.r.d}`:`<i>尚未回報</i>`}
-          </div>`
-        : ``
+/* =========================
+   全域狀態
+========================= */
+let STATE = loadStore();
+if(!STATE){
+  // 預設虛擬資料：含待回報/已回報
+  STATE = {
+    loggedIn: false,
+    tasks: [
+      {
+        taskId: "EMS-20260210-0001",
+        createdAt: new Date("2026-02-10T14:20:00").toISOString(),
+        patient: {
+          name: "楊*盛",
+          sex: "男性",
+          age: 80,
+          addr: "新北市平溪區十分街214號之3（1樓）",
+          callTime: "2026-02-10T14:17",
+          cc: "喘",
+          hospital: "北市立萬芳醫院"
+        },
+        report: { status:"pending", treatment:"", management:"", disposition:"", reportedAt:"" }
+      },
+      {
+        taskId: "EMS-20260210-0002",
+        createdAt: new Date("2026-02-10T15:06:00").toISOString(),
+        patient: {
+          name: "林*德",
+          sex: "男性",
+          age: 65,
+          addr: "新北市板橋區文化路一段XXX號",
+          callTime: "2026-02-10T15:02",
+          cc: "胸痛",
+          hospital: "北市立萬芳醫院"
+        },
+        report: { status:"pending", treatment:"", management:"", disposition:"", reportedAt:"" }
+      },
+      {
+        taskId: "EMS-20260210-0003",
+        createdAt: new Date("2026-02-10T15:45:00").toISOString(),
+        patient: {
+          name: "陳*芬",
+          sex: "女性",
+          age: 72,
+          addr: "新北市新莊區中正路XXX號",
+          callTime: "2026-02-10T15:40",
+          cc: "意識改變",
+          hospital: "北市立萬芳醫院"
+        },
+        report: {
+          status:"reported",
+          treatment:"建立氣道、給氧、監測生命徵象",
+          management:"抽血、安排頭部 CT、會診神內",
+          disposition:"ICU",
+          reportedAt:"2026/02/10 16:05"
+        }
       }
-    </div>`;
+    ],
+    openTaskId: null
+  };
+  saveStore(STATE);
+}
+
+/* =========================
+   工具：時間格式
+========================= */
+function pad2(n){ return String(n).padStart(2,"0"); }
+function fmtLocal(dt){
+  // dt: ISO or datetime-local string
+  const d = new Date(dt);
+  if(isNaN(d.getTime())) return "-";
+  return `${d.getFullYear()}/${pad2(d.getMonth()+1)}/${pad2(d.getDate())} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+}
+function fmtCreated(iso){
+  const d = new Date(iso);
+  if(isNaN(d.getTime())) return "-";
+  return d.toLocaleString("zh-TW",{ hour12:false });
+}
+
+/* =========================
+   工具：遮蔽
+   - 未登入：姓名、地址遮蔽，但仍能辨識是哪張卡
+========================= */
+function maskName(name){
+  if(STATE.loggedIn) return name;
+  const s = String(name||"");
+  if(s.length <= 1) return "○";
+  const first = s[0];
+  const last = s[s.length-1];
+  return `${first}○${last}`; // 例：楊○盛
+}
+function maskAddr(addr){
+  if(STATE.loggedIn) return addr;
+  const s = String(addr||"");
+  if(s.length <= 6) return s.replace(/./g,"＊");
+  // 只保留「區/鄉鎮」前半段，後面遮蔽（不致可定位）
+  return s.slice(0, 6) + "＊＊＊";
+}
+function canExpand(){
+  // 只有登入才能展開看到完整個案與回報表單
+  return STATE.loggedIn === true;
+}
+
+/* =========================
+   工具：任務編號
+   EMS-YYYYMMDD-0001
+========================= */
+function ymdFromDatetimeLocal(dtLocal){
+  // "2026-02-10T14:17" -> "20260210"
+  const s = String(dtLocal||"").split("T")[0] || "";
+  return s.replaceAll("-","");
+}
+function nextSerialForDate(ymd){
+  const same = STATE.tasks.filter(t => t.taskId.startsWith(`EMS-${ymd}-`));
+  if(same.length === 0) return 1;
+  const nums = same.map(t=>{
+    const m = t.taskId.match(/-(\d{4})$/);
+    return m ? parseInt(m[1],10) : 0;
   });
+  return Math.max(...nums) + 1;
+}
+function padN(n,len=4){
+  const s = String(n);
+  return s.length>=len ? s : "0".repeat(len-s.length)+s;
 }
 
-function toggle(i){
-  const el=document.getElementById("b"+i);
-  el.style.display = el.style.display==="block"?"none":"block";
+/* =========================
+   UI：toast
+========================= */
+function toast(id){
+  const el = document.getElementById(id);
+  el.style.display = "block";
+  setTimeout(()=> el.style.display="none", 1300);
 }
 
-render();
+/* =========================
+   EMT 表單：清空 / 建立任務
+========================= */
+function clearForm(){
+  document.getElementById("f_name").value = "";
+  document.getElementById("f_sex").value = "男性";
+  document.getElementById("f_age").value = "";
+  document.getElementById("f_addr").value = "";
+  document.getElementById("f_calltime").value = "";
+  document.getElementById("f_cc").value = "";
+  // hospital 寫死，不清
+}
+
+function createTask(){
+  const name = document.getElementById("f_name").value.trim();
+  const sex = document.getElementById("f_sex").value.trim();
+  const age = document.getElementById("f_age").value.trim();
+  const addr = document.getElementById("f_addr").value.trim();
+  const callTime = document.getElementById("f_calltime").value;
+  const cc = document.getElementById("f_cc").value.trim();
+  const hospital = "北市立萬芳醫院"; // 寫死
+
+  // Demo：基本檢核（至少讓卡片可辨識）
+  if(!cc || !callTime){
+    alert("請至少填：主訴、報案時間（Demo）");
+    return;
+  }
+
+  const ymd = ymdFromDatetimeLocal(callTime) || "00000000";
+  const serial = nextSerialForDate(ymd);
+  const taskId = `EMS-${ymd}-${padN(serial,4)}`;
+
+  const newTask = {
+    taskId,
+    createdAt: new Date().toISOString(),
+    patient: { name: name || "（未填姓名）", sex, age: age || "-", addr: addr || "-", callTime, cc, hospital },
+    report: { status:"pending", treatment:"", management:"", disposition:"", reportedAt:"" }
+  };
+
+  STATE.tasks.unshift(newTask);
+  saveStore(STATE);
+  renderList();
+  toast("toastLeft");
+
+  // 建立後：若已登入，可自動展開；未登入只顯示摘要
+  if(STATE.loggedIn){
+    STATE.openTaskId = taskId;
+    saveStore(STATE);
+    renderList();
+  }
+}
+
+/* =========================
+   醫院端：登入/登出（Demo）
+========================= */
+function toggleLogin(){
+  STATE.loggedIn = !STATE.loggedIn;
+
+  // 登出時：收起所有展開
+  if(!STATE.loggedIn){
+    STATE.openTaskId = null;
+  }
+
+  saveStore(STATE);
+  syncAuthUI();
+  renderList();
+}
+
+function syncAuthUI(){
+  const pill = document.getElementById("authPill");
+  const btn = document.getElementById("loginBtn");
+  if(STATE.loggedIn){
+    pill.textContent = "🔐 已登入（可看完整個資／可回報）";
+    btn.textContent = "🚪 登出";
+    btn.className = "btn";
+  }else{
+    pill.textContent = "🔓 未登入（摘要模式／遮蔽個資）";
+    btn.textContent = "🔐 醫院端登入";
+    btn.className = "btn";
+  }
+}
+
+/* =========================
+   醫院端：搜尋與清單渲染
+   - 收合狀態也顯示足夠摘要（不全遮）
+   - 展開後顯示「所有起單資訊」
+   - 待回報：卡片內直接填表
+   - 已回報：唯讀顯示回報內容
+========================= */
+function matchesQuery(task, q){
+  if(!q) return true;
+  const s = q.toLowerCase();
+
+  // 注意：雖然未登入遮蔽顯示，但搜尋可以用完整資料（Demo）
+  // 真上線可改成：未登入只能用 taskId/主訴搜尋。
+  const hay = [
+    task.taskId,
+    task.patient.name,
+    task.patient.cc,
+    task.patient.addr
+  ].join(" ").toLowerCase();
+
+  return hay.includes(s);
+}
+
+function renderList(){
+  const list = document.getElementById("taskList");
+  const q = document.getElementById("search").value.trim();
+
+  const filtered = STATE.tasks.filter(t => matchesQuery(t, q));
+  document.getElementById("countBadge").textContent = `任務數：${filtered.length}`;
+
+  if(filtered.length === 0){
+    list.innerHTML = `<div class="lock-note">找不到符合的任務。請調整搜尋條件。</div>`;
+    return;
+  }
+
+  list.innerHTML = filtered.map(t => renderTaskCard(t)).join("");
+}
+
+function renderTaskCard(t){
+  const done = t.report.status === "reported";
+  const badgeClass = done ? "done" : "pending";
+  const badgeText = done ? "已回報" : "待回報";
+
+  // 收合摘要：未登入仍可辨識卡片，但不洩露身分
+  const nameShown = maskName(t.patient.name);
+  const addrShown = maskAddr(t.patient.addr);
+
+  const summary = `
+    <div class="meta">
+      ${nameShown}｜${t.patient.sex} ${t.patient.age}歲｜主訴：${t.patient.cc}<br>
+      報案：${fmtLocal(t.patient.callTime)}｜後送：北市立萬芳醫院
+    </div>
+  `;
+
+  const isOpen = (STATE.openTaskId === t.taskId);
+  const canOpen = canExpand();
+
+  const headerOnclick = canOpen
+    ? `onclick="toggleOpen('${escapeAttr(t.taskId)}')"`
+    : `onclick="showLockHint()"`;
+
+  const body = canOpen
+    ? `<div class="task-body" id="body-${escapeAttr(t.taskId)}" style="display:${isOpen?'block':'none'};">
+        ${renderDetail(t)}
+      </div>`
+    : ``;
+
+  return `
+    <div class="task">
+      <div class="task-header" ${headerOnclick}>
+        <div class="task-left">
+          <div class="task-id">${t.taskId}</div>
+          ${summary}
+        </div>
+        <span class="badge ${badgeClass}">${badgeText}</span>
+      </div>
+      ${body}
+    </div>
+  `;
+}
+
+function renderDetail(t){
+  const done = t.report.status === "reported";
+
+  // 展開後：顯示所有起單資訊（登入才看得到完整個資）
+  const kv = `
+    <div class="kv">
+      <div class="k">姓名</div><div class="v">${t.patient.name}</div>
+      <div class="k">性別 / 年齡</div><div class="v">${t.patient.sex} / ${t.patient.age}歲</div>
+      <div class="k">地址</div><div class="v">${t.patient.addr}</div>
+      <div class="k">報案時間</div><div class="v">${fmtLocal(t.patient.callTime)}</div>
+      <div class="k">主訴</div><div class="v">${t.patient.cc}</div>
+      <div class="k">後送醫院</div><div class="v">北市立萬芳醫院</div>
+      <div class="k">建立時間</div><div class="v">${fmtCreated(t.createdAt)}</div>
+    </div>
+  `;
+
+  if(done){
+    return `
+      ${kv}
+      <hr class="sep">
+      <div class="subhead">
+        <b>醫院端回報（唯讀）</b>
+        <span class="small-muted">回報時間：${t.report.reportedAt || "-"}</span>
+      </div>
+      <div class="kv">
+        <div class="k">處置</div><div class="v">${escapeHtml(t.report.treatment || "-")}</div>
+        <div class="k">治療</div><div class="v">${escapeHtml(t.report.management || "-")}</div>
+        <div class="k">動向</div><div class="v">${escapeHtml(t.report.disposition || "-")}</div>
+      </div>
+    `;
+  }
+
+  // 待回報：卡片內直接填表（舊功能補回來）
+  return `
+    ${kv}
+    <hr class="sep">
+    <div class="subhead">
+      <b>醫院端回報（待回報可直接填）</b>
+      <span class="small-muted">登入才可操作</span>
+    </div>
+
+    <label>處置（Treatment）</label>
+    <textarea id="rt-${escapeAttr(t.taskId)}" placeholder="例：給予氧氣 10 L/min NRBM、監測生命徵象">${escapeHtml(t.report.treatment || "")}</textarea>
+
+    <label>治療（Management）</label>
+    <textarea id="rm-${escapeAttr(t.taskId)}" placeholder="例：抽血、胸部 X 光、給予支氣管擴張劑">${escapeHtml(t.report.management || "")}</textarea>
+
+    <label>病人動向（Disposition）</label>
+    <select id="rd-${escapeAttr(t.taskId)}">
+      <option value="">請選擇</option>
+      ${renderOpt(t.report.disposition, "急診留觀")}
+      ${renderOpt(t.report.disposition, "一般病房")}
+      ${renderOpt(t.report.disposition, "ICU")}
+      ${renderOpt(t.report.disposition, "轉院")}
+      ${renderOpt(t.report.disposition, "出院")}
+    </select>
+
+    <div class="inline-actions">
+      <button class="btn btn-ghost" onclick="clearReport('${escapeAttr(t.taskId)}')">清空回報</button>
+      <button class="btn" onclick="saveReport('${escapeAttr(t.taskId)}')">送出回報</button>
+    </div>
+  `;
+}
+
+function renderOpt(curr, val){
+  const sel = (curr === val) ? "selected" : "";
+  return `<option ${sel}>${val}</option>`;
+}
+
+function toggleOpen(taskId){
+  // 一次只開一張：同張就收起、不同張就切換
+  STATE.openTaskId = (STATE.openTaskId === taskId) ? null : taskId;
+  saveStore(STATE);
+  renderList();
+}
+
+function showLockHint(){
+  alert("此頁為摘要模式（未登入）。請先點右上角「醫院端登入」後，才能展開完整個案與填寫回報。");
+}
+
+/* =========================
+   回報：清空 / 儲存（補回舊功能）
+========================= */
+function clearReport(taskId){
+  const t = STATE.tasks.find(x => x.taskId === taskId);
+  if(!t) return;
+  t.report.treatment = "";
+  t.report.management = "";
+  t.report.disposition = "";
+  saveStore(STATE);
+  renderList();
+}
+
+function saveReport(taskId){
+  const t = STATE.tasks.find(x => x.taskId === taskId);
+  if(!t) return;
+
+  const rt = document.getElementById("rt-"+taskId).value.trim();
+  const rm = document.getElementById("rm-"+taskId).value.trim();
+  const rd = document.getElementById("rd-"+taskId).value;
+
+  if(!rt && !rm && !rd){
+    alert("至少填寫一項回報內容（處置 / 治療 / 動向）");
+    return;
+  }
+
+  t.report.treatment = rt;
+  t.report.management = rm;
+  t.report.disposition = rd;
+  t.report.status = "reported";
+  t.report.reportedAt = new Date().toLocaleString("zh-TW",{ hour12:false });
+
+  saveStore(STATE);
+  renderList();
+  toast("toastRight");
+}
+
+/* =========================
+   Reset demo
+========================= */
+function resetDemo(){
+  if(!confirm("確定要清空 Demo 資料？（只影響此瀏覽器）")) return;
+  localStorage.removeItem(STORE_KEY);
+  location.reload();
+}
+
+/* =========================
+   HTML escape helpers
+========================= */
+function escapeAttr(s){
+  return String(s).replaceAll('"','&quot;').replaceAll("'","&#39;").replaceAll("<","&lt;").replaceAll(">","&gt;");
+}
+function escapeHtml(s){
+  return String(s)
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#39;");
+}
+
+/* =========================
+   Init
+========================= */
+syncAuthUI();
+renderList();
 </script>
+
 </body>
 </html>
