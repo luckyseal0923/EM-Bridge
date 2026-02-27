@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>EMT 病人交接回報平台｜Demo</title>
+
+<style>
+:root{
+  --primary:#0f766e;      /* 醫療綠 */
+  --secondary:#334155;    /* 深灰 */
+  --bg:#f1f5f9;
+  --card:#ffffff;
+  --border:#e2e8f0;
+  --muted:#64748b;
+}
+
+body{
+  margin:0;
+  padding:24px;
+  background:var(--bg);
+  font-family:-apple-system,BlinkMacSystemFont,"Noto Sans TC",sans-serif;
+  color:#0f172a;
+}
+
+/* ===== 容器 ===== */
+.container{
+  max-width:900px;
+  margin:0 auto;
+}
+
+/* ===== 標題 ===== */
+.header{
+  margin-bottom:16px;
+}
+.header h1{
+  font-size:22px;
+  margin:0;
+}
+.header p{
+  margin:4px 0 0;
+  color:var(--muted);
+  font-size:14px;
+}
+
+/* ===== 卡片 ===== */
+.card{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:14px;
+  padding:20px;
+  margin-bottom:20px;
+  box-shadow:0 8px 20px rgba(0,0,0,0.04);
+}
+
+/* ===== 區塊標題 ===== */
+.section-title{
+  font-size:16px;
+  font-weight:600;
+  margin-bottom:12px;
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+.badge{
+  font-size:12px;
+  padding:2px 8px;
+  border-radius:999px;
+  background:#ecfeff;
+  color:var(--primary);
+  border:1px solid #99f6e4;
+}
+
+/* ===== 資料表格 ===== */
+.info-grid{
+  display:grid;
+  grid-template-columns:140px 1fr;
+  row-gap:10px;
+  column-gap:12px;
+  font-size:14px;
+}
+.label{
+  color:var(--muted);
+}
+.value{
+  font-weight:500;
+}
+
+/* ===== 表單 ===== */
+.form-group{
+  margin-bottom:14px;
+}
+.form-group label{
+  display:block;
+  font-size:14px;
+  margin-bottom:6px;
+}
+textarea, select{
+  width:100%;
+  box-sizing:border-box;
+  padding:10px;
+  font-size:14px;
+  border-radius:8px;
+  border:1px solid var(--border);
+  resize:vertical;
+}
+textarea{
+  min-height:80px;
+}
+
+/* ===== 按鈕 ===== */
+.actions{
+  text-align:right;
+}
+button{
+  background:var(--primary);
+  color:#fff;
+  border:none;
+  padding:10px 18px;
+  border-radius:10px;
+  font-size:14px;
+  cursor:pointer;
+}
+button:hover{
+  opacity:0.9;
+}
+
+/* ===== 成功提示 ===== */
+.success{
+  display:none;
+  margin-top:12px;
+  padding:10px;
+  border-radius:8px;
+  background:#ecfeff;
+  border:1px solid #67e8f9;
+  color:#065f46;
+  font-size:14px;
+}
+</style>
+</head>
+
+<body>
+<div class="container">
+
+  <!-- ===== 標題 ===== -->
+  <div class="header">
+    <h1>🚑 EMT → 醫院病人交接回報平台（Demo）</h1>
+    <p>示範流程：EMT 建案後，由醫院端回報病人處置 / 治療 / 動向</p>
+  </div>
+
+  <!-- ===== EMT 建立的個案資料 ===== -->
+  <div class="card">
+    <div class="section-title">
+      EMT 個案資料
+      <span class="badge">唯讀</span>
+    </div>
+
+    <div class="info-grid">
+      <div class="label">姓名</div>
+      <div class="value">楊*盛</div>
+
+      <div class="label">性別 / 年齡</div>
+      <div class="value">男性 / 80 歲</div>
+
+      <div class="label">地址</div>
+      <div class="value">新北市平溪區十分街214號之3（1樓）</div>
+
+      <div class="label">報案時間</div>
+      <div class="value">2026/02/10 14:17</div>
+
+      <div class="label">主訴</div>
+      <div class="value">喘</div>
+
+      <div class="label">後送醫院</div>
+      <div class="value">北市立萬芳醫院</div>
+    </div>
+  </div>
+
+  <!-- ===== 醫院端回報 ===== -->
+  <div class="card">
+    <div class="section-title">
+      醫院端回報
+      <span class="badge">填寫</span>
+    </div>
+
+    <div class="form-group">
+      <label>處置（Treatment）</label>
+      <textarea placeholder="例：給予氧氣 10 L/min NRBM，監測生命徵象"></textarea>
+    </div>
+
+    <div class="form-group">
+      <label>治療（Management）</label>
+      <textarea placeholder="例：給予支氣管擴張劑，抽血檢驗，安排胸部 X 光"></textarea>
+    </div>
+
+    <div class="form-group">
+      <label>病人動向（Disposition）</label>
+      <select>
+        <option>請選擇</option>
+        <option>急診留觀</option>
+        <option>一般病房住院</option>
+        <option>加護病房</option>
+        <option>轉院</option>
+        <option>出院</option>
+      </select>
+    </div>
+
+    <div class="actions">
+      <button onclick="submitDemo()">送出回報</button>
+    </div>
+
+    <div class="success" id="successBox">
+      ✅ 回報已送出（Demo 模擬成功）
+    </div>
+  </div>
+
+</div>
+
+<script>
+function submitDemo(){
+  document.getElementById('successBox').style.display = 'block';
+}
+</script>
+
+</body>
+</html>
