@@ -3,17 +3,18 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>EMT 起單 → 醫院回報｜任務清單 Demo</title>
+<title>院前救護起單與醫院回報系統｜Demo</title>
 
 <style>
 :root{
-  --primary:#0f766e;
-  --bg:#f1f5f9;
+  --primary:#b91c1c;      /* 急救紅 */
+  --primary-soft:#fee2e2;
+  --accent:#fda4af;       /* 粉紅 */
+  --bg:#fff1f2;
   --card:#ffffff;
-  --border:#e2e8f0;
-  --muted:#64748b;
-  --pending:#f59e0b;
-  --done:#16a34a;
+  --border:#fecaca;
+  --text:#7f1d1d;
+  --muted:#9f1239;
 }
 
 body{
@@ -21,125 +22,176 @@ body{
   padding:20px;
   background:var(--bg);
   font-family:-apple-system,BlinkMacSystemFont,"Noto Sans TC",sans-serif;
+  color:var(--text);
 }
 
 .container{
-  max-width:1100px;
+  max-width:1200px;
   margin:auto;
 }
 
 h1{
-  font-size:20px;
-  margin-bottom:12px;
+  font-size:22px;
+  margin-bottom:16px;
 }
 
+/* ===== Layout ===== */
 .grid{
   display:grid;
-  grid-template-columns:360px 1fr;
-  gap:16px;
+  grid-template-columns:380px 1fr;
+  gap:18px;
 }
 @media(max-width:900px){
   .grid{ grid-template-columns:1fr; }
 }
 
+/* ===== Card ===== */
 .card{
   background:var(--card);
   border:1px solid var(--border);
-  border-radius:14px;
-  padding:16px;
-  box-shadow:0 8px 20px rgba(0,0,0,.04);
+  border-radius:16px;
+  padding:18px;
+  box-shadow:0 10px 24px rgba(185,28,28,.15);
 }
 
+.card h3{
+  margin-top:0;
+  font-size:16px;
+}
+
+/* ===== Form ===== */
 label{
-  font-size:13px;
   display:block;
-  margin-top:8px;
+  font-size:13px;
+  margin-top:10px;
 }
-
 input, textarea, select{
   width:100%;
-  padding:8px;
-  border-radius:8px;
+  padding:9px;
+  border-radius:10px;
   border:1px solid var(--border);
+  font-size:14px;
 }
+input[readonly]{
+  background:#fff5f5;
+  color:#7f1d1d;
+}
+textarea{ resize:vertical; }
 
 button{
-  margin-top:10px;
-  padding:8px 14px;
+  margin-top:14px;
+  padding:10px 16px;
   border:none;
-  border-radius:10px;
+  border-radius:12px;
   background:var(--primary);
   color:white;
+  font-size:14px;
   cursor:pointer;
 }
 
-/* ===== 任務卡 ===== */
+/* ===== Task List ===== */
 .task{
   border:1px solid var(--border);
-  border-radius:12px;
-  margin-bottom:12px;
+  border-radius:14px;
+  margin-bottom:14px;
   overflow:hidden;
+  background:#fff;
 }
 
 .task-header{
-  padding:12px;
+  padding:14px;
   cursor:pointer;
   display:flex;
   justify-content:space-between;
-  align-items:center;
-  background:#fff;
+  align-items:flex-start;
+  gap:12px;
+  background:linear-gradient(90deg,#fff5f5,#ffffff);
 }
-.task-header:hover{ background:#f8fafc; }
+.task-header:hover{
+  background:#fff1f2;
+}
 
-.task-id{ font-weight:700; }
-.task-meta{ font-size:12px; color:var(--muted); }
+.task-id{
+  font-weight:700;
+}
+.task-meta{
+  font-size:12px;
+  margin-top:4px;
+}
 
 .badge{
   font-size:12px;
-  padding:3px 8px;
+  padding:4px 10px;
   border-radius:999px;
+  white-space:nowrap;
 }
-.pending{ background:#fff7ed; color:#9a3412; }
-.done{ background:#ecfdf5; color:#166534; }
+.pending{
+  background:#fff7ed;
+  color:#9a3412;
+  border:1px solid #fed7aa;
+}
+.done{
+  background:#fee2e2;
+  color:#7f1d1d;
+  border:1px solid #fecaca;
+}
 
 .task-body{
   display:none;
-  padding:12px;
-  background:#f8fafc;
+  padding:14px;
+  background:#fffafa;
   border-top:1px solid var(--border);
 }
 
 .kv{
   display:grid;
-  grid-template-columns:120px 1fr;
-  gap:6px 10px;
+  grid-template-columns:140px 1fr;
+  gap:8px 12px;
   font-size:14px;
 }
 
 hr{
   border:none;
   border-top:1px solid var(--border);
-  margin:10px 0;
+  margin:12px 0;
 }
 </style>
 </head>
 
 <body>
 <div class="container">
-<h1>🚑 EMT 起單 → 醫院端任務清單（待回報可直接填）</h1>
+<h1>🚑 院前救護起單 → 醫院端回報系統（Demo）</h1>
 
 <div class="grid">
 
 <!-- EMT 起單 -->
 <div class="card">
 <h3>EMT 起單</h3>
-<label>姓名</label><input id="name">
-<label>性別</label><select id="sex"><option>男性</option><option>女性</option></select>
-<label>年齡</label><input id="age">
-<label>地址</label><input id="addr">
-<label>報案時間</label><input id="time">
-<label>主訴</label><input id="cc">
-<label>後送醫院</label><input id="hospital">
+
+<label>姓名</label>
+<input id="name">
+
+<label>性別</label>
+<select id="sex">
+  <option>男性</option>
+  <option>女性</option>
+</select>
+
+<label>年齡</label>
+<input id="age" type="number">
+
+<label>地址</label>
+<input id="addr">
+
+<label>報案時間</label>
+<input id="time" type="datetime-local">
+
+<label>主訴</label>
+<input id="cc">
+
+<label>後送醫院</label>
+<input value="北市立萬芳醫院" readonly>
+
 <button onclick="createTask()">建立任務</button>
 </div>
 
@@ -153,26 +205,31 @@ hr{
 </div>
 
 <script>
-let tasks = [
+let seq=4;
+let tasks=[
   {
     id:"EMS-20260210-0001",
-    p:{name:"楊*盛",sex:"男性",age:80,cc:"喘",hospital:"萬芳醫院"},
+    p:{name:"楊*盛",sex:"男性",age:80,addr:"新北市平溪區十分街",time:"2026-02-10T14:17",cc:"喘"},
     r:{}
   },
   {
     id:"EMS-20260210-0002",
-    p:{name:"林*德",sex:"男性",age:65,cc:"胸痛",hospital:"萬芳醫院"},
+    p:{name:"林*德",sex:"男性",age:65,addr:"新北市板橋區",time:"2026-02-10T15:02",cc:"胸痛"},
     r:{}
   },
   {
     id:"EMS-20260210-0003",
-    p:{name:"陳*芬",sex:"女性",age:72,cc:"意識改變",hospital:"萬芳醫院"},
+    p:{name:"陳*芬",sex:"女性",age:72,addr:"新北市新莊區",time:"2026-02-10T15:40",cc:"意識改變"},
     r:{t:"插管",m:"CT",d:"ICU"}
   }
 ];
 
+function fmt(t){
+  const d=new Date(t);
+  return `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`;
+}
+
 function render(){
-  const list=document.getElementById("list");
   list.innerHTML="";
   tasks.forEach((t,i)=>{
     const done=!!t.r.d;
@@ -181,37 +238,38 @@ function render(){
       <div class="task-header" onclick="toggle(${i})">
         <div>
           <div class="task-id">${t.id}</div>
-          <div class="task-meta">${t.p.name}｜${t.p.cc}</div>
+          <div class="task-meta">
+            ${t.p.name}｜${t.p.sex} ${t.p.age}歲｜${t.p.cc}<br>
+            報案：${fmt(t.p.time)}
+          </div>
         </div>
         <span class="badge ${done?"done":"pending"}">${done?"已回報":"待回報"}</span>
       </div>
-      <div class="task-body" id="body${i}">
+      <div class="task-body" id="b${i}">
         <div class="kv">
           <div>姓名</div><div>${t.p.name}</div>
+          <div>性別 / 年齡</div><div>${t.p.sex} / ${t.p.age}</div>
+          <div>地址</div><div>${t.p.addr}</div>
+          <div>報案時間</div><div>${fmt(t.p.time)}</div>
           <div>主訴</div><div>${t.p.cc}</div>
-          <div>後送</div><div>${t.p.hospital}</div>
+          <div>後送醫院</div><div>北市立萬芳醫院</div>
         </div>
         <hr>
         ${
           done
-          ? `
-            處置：${t.r.t}<br>
-            治療：${t.r.m}<br>
-            動向：${t.r.d}
-          `
+          ? `處置：${t.r.t}<br>治療：${t.r.m}<br>動向：${t.r.d}`
           : `
-            <label>處置</label><textarea id="t${i}"></textarea>
-            <label>治療</label><textarea id="m${i}"></textarea>
-            <label>動向</label>
-            <select id="d${i}">
-              <option></option>
-              <option>急診留觀</option>
-              <option>一般病房</option>
-              <option>ICU</option>
-              <option>出院</option>
-            </select>
-            <button onclick="save(${i})">送出回報</button>
-          `
+          <label>處置</label><textarea id="t${i}"></textarea>
+          <label>治療</label><textarea id="m${i}"></textarea>
+          <label>病人動向</label>
+          <select id="d${i}">
+            <option></option>
+            <option>急診留觀</option>
+            <option>一般病房</option>
+            <option>ICU</option>
+            <option>出院</option>
+          </select>
+          <button onclick="save(${i})">送出回報</button>`
         }
       </div>
     </div>`;
@@ -234,12 +292,11 @@ function save(i){
 }
 
 function createTask(){
-  const id=`EMS-20260210-${String(tasks.length+1).padStart(4,"0")}`;
   tasks.unshift({
-    id,
+    id:`EMS-20260210-${String(seq++).padStart(4,"0")}`,
     p:{
       name:name.value,sex:sex.value,age:age.value,
-      cc:cc.value,hospital:hospital.value
+      addr:addr.value,time:time.value,cc:cc.value
     },
     r:{}
   });
