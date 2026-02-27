@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>EMT 起單 → 醫院回報｜Demo</title>
+<title>EMT 起單 → 醫院回報｜任務卡 Demo</title>
 
 <style>
 :root{
@@ -11,19 +11,15 @@
   --bg:#f1f5f9;
   --card:#ffffff;
   --border:#e2e8f0;
-  --text:#0f172a;
   --muted:#64748b;
-  --ok:#16a34a;
-  --warn:#f59e0b;
+  --pending:#f59e0b;
+  --done:#16a34a;
 }
-
-*{ box-sizing:border-box; }
 
 body{
   margin:0;
   padding:20px;
   background:var(--bg);
-  color:var(--text);
   font-family:-apple-system,BlinkMacSystemFont,"Noto Sans TC",sans-serif;
 }
 
@@ -32,582 +28,213 @@ body{
   margin:0 auto;
 }
 
-.header{
-  display:flex;
-  justify-content:space-between;
-  align-items:flex-end;
-  gap:12px;
-  margin-bottom:14px;
-}
-
-.header h1{
-  margin:0;
+h1{
   font-size:20px;
-}
-.header p{
-  margin:6px 0 0;
-  color:var(--muted);
-  font-size:13px;
+  margin-bottom:12px;
 }
 
+/* ===== Layout ===== */
 .grid{
   display:grid;
-  grid-template-columns: 420px 1fr;
-  gap:14px;
+  grid-template-columns:380px 1fr;
+  gap:16px;
 }
-
-@media (max-width: 980px){
+@media(max-width:900px){
   .grid{ grid-template-columns:1fr; }
 }
 
+/* ===== Card ===== */
 .card{
   background:var(--card);
   border:1px solid var(--border);
   border-radius:14px;
   padding:16px;
-  box-shadow:0 10px 24px rgba(0,0,0,0.04);
-}
-
-.section-title{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:10px;
-  margin-bottom:12px;
-}
-
-.section-title h2{
-  margin:0;
-  font-size:15px;
-}
-
-.badge{
-  font-size:12px;
-  padding:3px 10px;
-  border-radius:999px;
-  border:1px solid var(--border);
-  color:var(--muted);
-  background:#fff;
+  box-shadow:0 8px 20px rgba(0,0,0,.04);
 }
 
 label{
   display:block;
+  margin-top:10px;
   font-size:13px;
-  color:#111827;
-  margin:10px 0 6px;
 }
-
 input, textarea, select{
   width:100%;
-  padding:10px;
+  padding:8px;
+  border-radius:8px;
   border:1px solid var(--border);
-  border-radius:10px;
-  font-size:14px;
-  background:#fff;
 }
-
-textarea{ min-height:72px; resize:vertical; }
-
-.row2{
-  display:grid;
-  grid-template-columns: 1fr 1fr;
-  gap:10px;
-}
-@media (max-width: 520px){
-  .row2{ grid-template-columns:1fr; }
-}
-
-.actions{
-  display:flex;
-  gap:10px;
-  justify-content:flex-end;
-  margin-top:12px;
-}
+textarea{ resize:vertical; }
 
 button{
-  border:none;
+  margin-top:12px;
   padding:10px 14px;
+  border:none;
   border-radius:10px;
-  cursor:pointer;
-  font-size:14px;
-}
-
-.btn-primary{
   background:var(--primary);
   color:#fff;
-}
-.btn-ghost{
-  background:#fff;
-  border:1px solid var(--border);
-  color:#111827;
+  cursor:pointer;
 }
 
-.small{
-  font-size:12px;
-  color:var(--muted);
-  margin-top:8px;
-}
-
-.list{
-  display:flex;
-  flex-direction:column;
-  gap:10px;
-}
-
-.task-item{
+/* ===== Task List ===== */
+.task{
   border:1px solid var(--border);
   border-radius:12px;
-  padding:12px;
-  background:#fff;
-  cursor:pointer;
-  transition:transform .08s ease, box-shadow .08s ease;
-}
-.task-item:hover{
-  transform:translateY(-1px);
-  box-shadow:0 10px 18px rgba(0,0,0,0.06);
+  margin-bottom:10px;
+  overflow:hidden;
 }
 
-.task-top{
+.task-header{
+  padding:12px;
+  cursor:pointer;
   display:flex;
   justify-content:space-between;
-  align-items:flex-start;
-  gap:10px;
+  align-items:center;
+  background:#fff;
+}
+
+.task-header:hover{
+  background:#f8fafc;
 }
 
 .task-id{
   font-weight:700;
-  letter-spacing:0.2px;
 }
 .task-meta{
-  color:var(--muted);
   font-size:12px;
-  margin-top:4px;
+  color:var(--muted);
 }
 
-.status{
+.badge{
   font-size:12px;
   padding:3px 8px;
   border-radius:999px;
-  border:1px solid var(--border);
-  white-space:nowrap;
 }
-.status.pending{
-  background:#fff7ed;
-  border-color:#fed7aa;
-  color:#9a3412;
-}
-.status.reported{
-  background:#ecfdf5;
-  border-color:#bbf7d0;
-  color:#166534;
-}
+.pending{ background:#fff7ed; color:#9a3412; }
+.done{ background:#ecfdf5; color:#166534; }
 
-hr.sep{
-  border:none;
+.task-body{
+  display:none;
+  padding:12px;
   border-top:1px solid var(--border);
-  margin:12px 0;
+  background:#f8fafc;
 }
 
 .kv{
   display:grid;
-  grid-template-columns: 130px 1fr;
-  gap:8px 10px;
+  grid-template-columns:120px 1fr;
+  gap:6px 10px;
   font-size:14px;
 }
-.kv .k{ color:var(--muted); }
-.kv .v{ font-weight:600; }
 
-.note{
-  background:#f8fafc;
-  border:1px dashed #cbd5e1;
-  padding:10px;
-  border-radius:12px;
-  color:#334155;
-  font-size:13px;
-}
-
-.toast{
-  display:none;
-  margin-top:10px;
-  padding:10px 12px;
-  border-radius:10px;
-  border:1px solid #99f6e4;
-  background:#ecfeff;
-  color:#065f46;
-  font-size:13px;
+hr{
+  border:none;
+  border-top:1px solid var(--border);
+  margin:12px 0;
 }
 </style>
 </head>
 
 <body>
 <div class="container">
-  <div class="header">
-    <div>
-      <h1>🚑 起單（EMT）→ 回報（醫院端）｜任務卡 Demo</h1>
-      <p>流程：EMT 填表建立任務 → 系統產生任務編號 → 醫院端點選任務卡 → 填寫處置/治療/動向 → 儲存回報</p>
-    </div>
-    <div class="badge" id="countBadge">任務數：0</div>
-  </div>
+<h1>🚑 EMT 起單 → 醫院端回報（可開合任務卡 Demo）</h1>
 
-  <div class="grid">
-    <!-- =========================
-         左：EMT 起單區
-    ========================= -->
-    <div class="card">
-      <div class="section-title">
-        <h2>EMT 起單（建立新任務）</h2>
-        <span class="badge">填表 → 建立任務</span>
-      </div>
+<div class="grid">
 
-      <label>姓名</label>
-      <input id="f_name" value="楊*盛" />
+<!-- ================= EMT 起單 ================= -->
+<div class="card">
+<h3>EMT 起單（建立新任務）</h3>
 
-      <label>地址</label>
-      <input id="f_addr" value="新北市平溪區十分街214號之3（1樓）" />
+<label>姓名</label><input id="name">
+<label>性別</label>
+<select id="sex"><option>男性</option><option>女性</option></select>
+<label>年齡</label><input id="age" type="number">
+<label>地址</label><input id="addr">
+<label>報案時間</label><input id="time">
+<label>主訴</label><input id="cc">
+<label>後送醫院</label><input id="hospital">
 
-      <div class="row2">
-        <div>
-          <label>性別</label>
-          <select id="f_sex">
-            <option>男性</option>
-            <option>女性</option>
-            <option>其他</option>
-          </select>
-        </div>
-        <div>
-          <label>年齡</label>
-          <input id="f_age" type="number" value="80" />
-        </div>
-      </div>
+<button onclick="createTask()">建立任務</button>
+</div>
 
-      <label>報案日期時間</label>
-      <input id="f_calltime" value="2026/02/10 14:17" />
+<!-- ================= 任務清單 ================= -->
+<div class="card">
+<h3>醫院端任務清單（點擊卡片展開）</h3>
+<div id="list"></div>
+</div>
 
-      <label>主訴</label>
-      <input id="f_cc" value="喘" />
-
-      <label>後送醫院</label>
-      <input id="f_hospital" value="北市立萬芳醫院" />
-
-      <div class="actions">
-        <button class="btn-ghost" onclick="resetDemo()">清空 Demo 資料</button>
-        <button class="btn-primary" onclick="createTask()">建立任務</button>
-      </div>
-
-      <div class="small">
-        任務編號格式：<b>EMS-YYYYMMDD-流水號</b>（Demo 產生）<br/>
-        資料保存在瀏覽器 localStorage（Demo 用，非正式上線）
-      </div>
-
-      <div class="toast" id="toastLeft">✅ 任務已建立</div>
-    </div>
-
-    <!-- =========================
-         右：任務清單 + 醫院端回報
-    ========================= -->
-    <div class="card">
-      <div class="section-title">
-        <h2>醫院端任務清單（點選開啟卡片回報）</h2>
-        <span class="badge" id="selectedBadge">尚未選取</span>
-      </div>
-
-      <div class="list" id="taskList"></div>
-
-      <hr class="sep"/>
-
-      <div id="detailEmpty" class="note">
-        👆 請先在上方任務清單點選一筆任務，這裡會顯示個案卡與醫院回報欄位。
-      </div>
-
-      <div id="detailPanel" style="display:none;">
-        <div class="kv" id="detailKV"></div>
-
-        <hr class="sep"/>
-
-        <div class="section-title" style="margin-bottom:6px;">
-          <h2 style="font-size:15px;margin:0;">醫院端回報</h2>
-          <span class="badge" id="statusBadge">待回報</span>
-        </div>
-
-        <label>處置（Treatment）</label>
-        <textarea id="r_treatment" placeholder="例：給予氧氣 10 L/min NRBM，監測生命徵象"></textarea>
-
-        <label>治療（Management）</label>
-        <textarea id="r_management" placeholder="例：抽血檢驗、安排胸部 X 光、給予支氣管擴張劑"></textarea>
-
-        <label>病人動向（Disposition）</label>
-        <select id="r_disposition">
-          <option value="">請選擇</option>
-          <option>急診留觀</option>
-          <option>一般病房住院</option>
-          <option>加護病房</option>
-          <option>轉院</option>
-          <option>出院</option>
-        </select>
-
-        <div class="actions">
-          <button class="btn-ghost" onclick="clearReport()">清空回報欄位</button>
-          <button class="btn-primary" onclick="saveReport()">送出回報</button>
-        </div>
-
-        <div class="toast" id="toastRight">✅ 回報已儲存（Demo）</div>
-      </div>
-    </div>
-  </div>
+</div>
 </div>
 
 <script>
-/* =========================
-   Demo 資料儲存（localStorage）
-========================= */
-const STORE_KEY = "EMS_TASK_DEMO_V1";
-
-function loadStore(){
-  try{
-    return JSON.parse(localStorage.getItem(STORE_KEY) || "[]");
-  }catch{
-    return [];
+let tasks = [
+  {
+    id:"EMS-20260210-0001",
+    p:{name:"楊*盛",sex:"男性",age:80,addr:"新北市平溪區",time:"2026/02/10 14:17",cc:"喘",hospital:"萬芳醫院"},
+    r:{t:"氧氣治療",m:"X光、抽血",d:"急診留觀"}
+  },
+  {
+    id:"EMS-20260210-0002",
+    p:{name:"林*德",sex:"男性",age:65,addr:"新北市板橋",time:"2026/02/10 15:02",cc:"胸痛",hospital:"萬芳醫院"},
+    r:{}
+  },
+  {
+    id:"EMS-20260210-0003",
+    p:{name:"陳*芬",sex:"女性",age:72,addr:"新北市新莊",time:"2026/02/10 15:40",cc:"意識改變",hospital:"萬芳醫院"},
+    r:{t:"插管",m:"CT",d:"ICU"}
   }
-}
-function saveStore(arr){
-  localStorage.setItem(STORE_KEY, JSON.stringify(arr));
-}
+];
 
-/* =========================
-   任務編號生成：EMS-YYYYMMDD-0001
-========================= */
-function pad(n, len=4){
-  const s = String(n);
-  return s.length >= len ? s : "0".repeat(len - s.length) + s;
-}
-function ymdFromCallTime(callTime){
-  // 期待格式：YYYY/MM/DD HH:mm
-  // Demo 先用簡單替換，真上線可以改更嚴謹
-  const part = String(callTime || "").split(" ")[0] || "";
-  return part.replaceAll("/", "");
-}
-function nextSerialForDate(tasks, ymd){
-  const same = tasks.filter(t => t.taskId.startsWith(`EMS-${ymd}-`));
-  if (same.length === 0) return 1;
-  const nums = same.map(t => {
-    const m = t.taskId.match(/-(\d{4})$/);
-    return m ? parseInt(m[1],10) : 0;
-  });
-  return Math.max(...nums) + 1;
-}
-
-/* =========================
-   UI 狀態
-========================= */
-let TASKS = loadStore();
-let SELECTED_ID = null;
-
-function setToast(id, on){
-  const el = document.getElementById(id);
-  el.style.display = on ? "block" : "none";
-  if(on){
-    setTimeout(() => { el.style.display = "none"; }, 1300);
-  }
-}
-
-/* =========================
-   EMT 建立任務
-========================= */
-function createTask(){
-  const name = document.getElementById("f_name").value.trim();
-  const addr = document.getElementById("f_addr").value.trim();
-  const sex = document.getElementById("f_sex").value.trim();
-  const age = document.getElementById("f_age").value.trim();
-  const callTime = document.getElementById("f_calltime").value.trim();
-  const cc = document.getElementById("f_cc").value.trim();
-  const hospital = document.getElementById("f_hospital").value.trim();
-
-  // Demo：最基本檢核
-  if(!name || !callTime || !hospital){
-    alert("請至少填：姓名、報案時間、後送醫院（Demo）");
-    return;
-  }
-
-  const ymd = ymdFromCallTime(callTime) || "00000000";
-  const serial = nextSerialForDate(TASKS, ymd);
-  const taskId = `EMS-${ymd}-${pad(serial, 4)}`;
-
-  const newTask = {
-    taskId,
-    createdAt: new Date().toISOString(),
-    patient: { name, addr, sex, age, callTime, cc, hospital },
-    report: {
-      status: "pending", // pending / reported
-      treatment: "",
-      management: "",
-      disposition: "",
-      reportedAt: ""
-    }
-  };
-
-  TASKS.unshift(newTask);
-  saveStore(TASKS);
-  renderList();
-  setToast("toastLeft", true);
-
-  // 自動選取剛建立的
-  openTask(taskId);
-}
-
-/* =========================
-   任務清單渲染
-========================= */
-function formatDT(iso){
-  try{
-    const d = new Date(iso);
-    // 不做時區複雜化，Demo 可用
-    return d.toLocaleString("zh-TW", { hour12:false });
-  }catch{
-    return iso || "-";
-  }
-}
-function renderList(){
-  const list = document.getElementById("taskList");
-  list.innerHTML = "";
-
-  document.getElementById("countBadge").textContent = `任務數：${TASKS.length}`;
-
-  if(TASKS.length === 0){
-    list.innerHTML = `<div class="note">目前沒有任務。請在左側用 EMT 表單建立一筆。</div>`;
-    closeDetail();
-    return;
-  }
-
-  for(const t of TASKS){
-    const statusClass = t.report.status === "reported" ? "reported" : "pending";
-    const statusText = t.report.status === "reported" ? "已回報" : "待回報";
-
-    const div = document.createElement("div");
-    div.className = "task-item";
-    div.onclick = () => openTask(t.taskId);
-
-    div.innerHTML = `
-      <div class="task-top">
+function render(){
+  const list=document.getElementById("list");
+  list.innerHTML="";
+  tasks.forEach((t,i)=>{
+    const done=!!t.r.d;
+    list.innerHTML+=`
+    <div class="task">
+      <div class="task-header" onclick="toggle(${i})">
         <div>
-          <div class="task-id">${t.taskId}</div>
-          <div class="task-meta">${t.patient.name}｜${t.patient.sex} ${t.patient.age}歲｜主訴：${t.patient.cc}</div>
-          <div class="task-meta">到院：${t.patient.hospital}｜報案：${t.patient.callTime}</div>
+          <div class="task-id">${t.id}</div>
+          <div class="task-meta">${t.p.name}｜${t.p.cc}</div>
         </div>
-        <div class="status ${statusClass}">${statusText}</div>
+        <span class="badge ${done?"done":"pending"}">${done?"已回報":"待回報"}</span>
       </div>
-    `;
-    list.appendChild(div);
-  }
+      <div class="task-body" id="body${i}">
+        <div class="kv">
+          <div>姓名</div><div>${t.p.name}</div>
+          <div>性別/年齡</div><div>${t.p.sex}/${t.p.age}</div>
+          <div>主訴</div><div>${t.p.cc}</div>
+          <div>後送</div><div>${t.p.hospital}</div>
+        </div>
+        <hr>
+        <b>醫院回報</b><br>
+        處置：${t.r.t||"-"}<br>
+        治療：${t.r.m||"-"}<br>
+        動向：${t.r.d||"-"}
+      </div>
+    </div>`;
+  });
 }
 
-/* =========================
-   開啟任務（醫院端點開卡片）
-========================= */
-function openTask(taskId){
-  SELECTED_ID = taskId;
-  const t = TASKS.find(x => x.taskId === taskId);
-  if(!t) return;
-
-  document.getElementById("selectedBadge").textContent = `已選取：${taskId}`;
-
-  // 顯示明細
-  document.getElementById("detailEmpty").style.display = "none";
-  document.getElementById("detailPanel").style.display = "block";
-
-  // KV 顯示
-  const kv = document.getElementById("detailKV");
-  kv.innerHTML = `
-    <div class="k">任務編號</div><div class="v">${t.taskId}</div>
-    <div class="k">姓名</div><div class="v">${t.patient.name}</div>
-    <div class="k">性別 / 年齡</div><div class="v">${t.patient.sex} / ${t.patient.age}歲</div>
-    <div class="k">地址</div><div class="v">${t.patient.addr}</div>
-    <div class="k">報案時間</div><div class="v">${t.patient.callTime}</div>
-    <div class="k">主訴</div><div class="v">${t.patient.cc}</div>
-    <div class="k">後送醫院</div><div class="v">${t.patient.hospital}</div>
-    <div class="k">建立時間</div><div class="v">${formatDT(t.createdAt)}</div>
-  `;
-
-  // 回報欄位帶入（若已回報可看到之前填的）
-  document.getElementById("r_treatment").value = t.report.treatment || "";
-  document.getElementById("r_management").value = t.report.management || "";
-  document.getElementById("r_disposition").value = t.report.disposition || "";
-
-  updateStatusBadge(t.report.status, t.report.reportedAt);
+function toggle(i){
+  document.querySelectorAll(".task-body").forEach((b,idx)=>{
+    b.style.display = idx===i && b.style.display!=="block" ? "block":"none";
+  });
 }
 
-function updateStatusBadge(status, reportedAt){
-  const el = document.getElementById("statusBadge");
-  if(status === "reported"){
-    el.textContent = reportedAt ? `已回報｜${reportedAt}` : "已回報";
-    el.style.borderColor = "#bbf7d0";
-    el.style.background = "#ecfdf5";
-    el.style.color = "#166534";
-  }else{
-    el.textContent = "待回報";
-    el.style.borderColor = "#fed7aa";
-    el.style.background = "#fff7ed";
-    el.style.color = "#9a3412";
-  }
+function createTask(){
+  const id=`EMS-20260210-${String(tasks.length+1).padStart(4,"0")}`;
+  tasks.unshift({
+    id,
+    p:{
+      name:name.value,sex:sex.value,age:age.value,
+      addr:addr.value,time:time.value,cc:cc.value,hospital:hospital.value
+    },
+    r:{}
+  });
+  render();
 }
 
-/* =========================
-   儲存回報（醫院端）
-========================= */
-function saveReport(){
-  if(!SELECTED_ID){
-    alert("請先從任務清單選一筆（Demo）");
-    return;
-  }
-  const t = TASKS.find(x => x.taskId === SELECTED_ID);
-  if(!t) return;
-
-  t.report.treatment = document.getElementById("r_treatment").value.trim();
-  t.report.management = document.getElementById("r_management").value.trim();
-  t.report.disposition = document.getElementById("r_disposition").value;
-
-  // Demo：要求至少填一項
-  if(!t.report.treatment && !t.report.management && !t.report.disposition){
-    alert("至少填寫一項回報內容（處置/治療/動向）");
-    return;
-  }
-
-  t.report.status = "reported";
-  t.report.reportedAt = new Date().toLocaleString("zh-TW", { hour12:false });
-
-  saveStore(TASKS);
-  renderList();
-  openTask(t.taskId); // 重新載入明細與狀態
-  setToast("toastRight", true);
-}
-
-function clearReport(){
-  document.getElementById("r_treatment").value = "";
-  document.getElementById("r_management").value = "";
-  document.getElementById("r_disposition").value = "";
-}
-
-/* =========================
-   清空 Demo
-========================= */
-function resetDemo(){
-  if(!confirm("確定要清空 Demo 任務資料嗎？（只影響你的瀏覽器）")) return;
-  TASKS = [];
-  SELECTED_ID = null;
-  saveStore(TASKS);
-  renderList();
-}
-
-function closeDetail(){
-  SELECTED_ID = null;
-  document.getElementById("selectedBadge").textContent = "尚未選取";
-  document.getElementById("detailEmpty").style.display = "block";
-  document.getElementById("detailPanel").style.display = "none";
-}
-
-/* =========================
-   初始渲染
-========================= */
-renderList();
+render();
 </script>
 </body>
 </html>
