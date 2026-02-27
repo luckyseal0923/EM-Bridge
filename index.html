@@ -3,15 +3,13 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>EMS資訊橋接平台｜Demo</title>
+<title>EMS 資訊橋接平台｜Demo</title>
 
 <style>
 :root{
-  --primary:#b91c1c;      /* 急救紅 */
-  --primary-soft:#fee2e2;
-  --accent:#fda4af;       /* 粉紅 */
+  --primary:#b91c1c;
+  --soft:#fee2e2;
   --bg:#fff1f2;
-  --card:#ffffff;
   --border:#fecaca;
   --text:#7f1d1d;
   --muted:#9f1239;
@@ -25,282 +23,180 @@ body{
   color:var(--text);
 }
 
-.container{
-  max-width:1200px;
-  margin:auto;
+.container{ max-width:1200px; margin:auto; }
+
+.header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:14px;
 }
 
-h1{
-  font-size:22px;
-  margin-bottom:16px;
-}
-
-/* ===== Layout ===== */
-.grid{
-  display:grid;
-  grid-template-columns:380px 1fr;
-  gap:18px;
-}
-@media(max-width:900px){
-  .grid{ grid-template-columns:1fr; }
-}
-
-/* ===== Card ===== */
-.card{
-  background:var(--card);
-  border:1px solid var(--border);
-  border-radius:16px;
-  padding:18px;
-  box-shadow:0 10px 24px rgba(185,28,28,.15);
-}
-
-.card h3{
-  margin-top:0;
-  font-size:16px;
-}
-
-/* ===== Form ===== */
-label{
-  display:block;
-  font-size:13px;
-  margin-top:10px;
-}
-input, textarea, select{
-  width:100%;
-  padding:9px;
-  border-radius:10px;
-  border:1px solid var(--border);
-  font-size:14px;
-}
-input[readonly]{
-  background:#fff5f5;
-  color:#7f1d1d;
-}
-textarea{ resize:vertical; }
+h1{ margin:0; font-size:22px; }
 
 button{
-  margin-top:14px;
-  padding:10px 16px;
   border:none;
-  border-radius:12px;
+  border-radius:10px;
+  padding:8px 14px;
   background:var(--primary);
   color:white;
-  font-size:14px;
   cursor:pointer;
 }
 
-/* ===== Task List ===== */
-.task{
+.card{
+  background:white;
   border:1px solid var(--border);
   border-radius:14px;
-  margin-bottom:14px;
+  padding:14px;
+}
+
+.search{
+  margin-bottom:12px;
+}
+.search input{
+  width:100%;
+  padding:10px;
+  border-radius:10px;
+  border:1px solid var(--border);
+}
+
+/* ===== Task ===== */
+.task{
+  border:1px solid var(--border);
+  border-radius:12px;
+  margin-bottom:12px;
   overflow:hidden;
-  background:#fff;
 }
 
 .task-header{
-  padding:14px;
-  cursor:pointer;
+  padding:12px;
   display:flex;
   justify-content:space-between;
-  align-items:flex-start;
-  gap:12px;
-  background:linear-gradient(90deg,#fff5f5,#ffffff);
-}
-.task-header:hover{
-  background:#fff1f2;
+  cursor:pointer;
+  background:#fffafa;
 }
 
-.task-id{
-  font-weight:700;
-}
-.task-meta{
-  font-size:12px;
-  margin-top:4px;
-}
+.task-header:hover{ background:#fff1f2; }
+
+.task-id{ font-weight:700; }
+.meta{ font-size:12px; margin-top:4px; }
 
 .badge{
   font-size:12px;
   padding:4px 10px;
   border-radius:999px;
-  white-space:nowrap;
 }
-.pending{
-  background:#fff7ed;
-  color:#9a3412;
-  border:1px solid #fed7aa;
-}
-.done{
-  background:#fee2e2;
-  color:#7f1d1d;
-  border:1px solid #fecaca;
-}
+.pending{ background:#fff7ed; }
+.done{ background:#fee2e2; }
 
 .task-body{
   display:none;
-  padding:14px;
-  background:#fffafa;
+  padding:12px;
   border-top:1px solid var(--border);
+  background:#fffafa;
 }
 
 .kv{
   display:grid;
-  grid-template-columns:140px 1fr;
-  gap:8px 12px;
+  grid-template-columns:120px 1fr;
+  gap:6px 10px;
   font-size:14px;
 }
 
-hr{
-  border:none;
-  border-top:1px solid var(--border);
-  margin:12px 0;
-}
+hr{ border:none; border-top:1px solid var(--border); margin:10px 0; }
 </style>
 </head>
 
 <body>
 <div class="container">
-<h1> EMS資訊橋接平台｜Demo </h1>
 
-<div class="grid">
+<div class="header">
+  <h1>🚑 EMS 資訊橋接平台｜Demo</h1>
+  <button onclick="toggleLogin()" id="loginBtn">🔓 未登入</button>
+</div>
 
-<!-- EMT 起單 -->
 <div class="card">
-<h3>EMT 起單</h3>
-
-<label>姓名</label>
-<input id="name">
-
-<label>性別</label>
-<select id="sex">
-  <option>男性</option>
-  <option>女性</option>
-</select>
-
-<label>年齡</label>
-<input id="age" type="number">
-
-<label>地址</label>
-<input id="addr">
-
-<label>報案時間</label>
-<input id="time" type="datetime-local">
-
-<label>主訴</label>
-<input id="cc">
-
-<label>後送醫院</label>
-<input value="北市立萬芳醫院" readonly>
-
-<button onclick="createTask()">建立任務</button>
+  <div class="search">
+    <input id="search" placeholder="搜尋 任務編號 / 姓名 / 主訴" oninput="render()" />
+  </div>
+  <div id="list"></div>
 </div>
 
-<!-- 醫院端 -->
-<div class="card">
-<h3>醫院端任務清單</h3>
-<div id="list"></div>
-</div>
-
-</div>
 </div>
 
 <script>
-let seq=4;
-let tasks=[
+let loggedIn = false;
+
+const tasks = [
   {
     id:"EMS-20260210-0001",
-    p:{name:"楊*盛",sex:"男性",age:80,addr:"新北市平溪區十分街",time:"2026-02-10T14:17",cc:"喘"},
+    p:{name:"楊*盛",sex:"男性",age:80,addr:"新北市平溪區十分街214號",time:"2026/02/10 14:17",cc:"喘"},
     r:{}
   },
   {
     id:"EMS-20260210-0002",
-    p:{name:"林*德",sex:"男性",age:65,addr:"新北市板橋區",time:"2026-02-10T15:02",cc:"胸痛"},
-    r:{}
-  },
-  {
-    id:"EMS-20260210-0003",
-    p:{name:"陳*芬",sex:"女性",age:72,addr:"新北市新莊區",time:"2026-02-10T15:40",cc:"意識改變"},
-    r:{t:"插管",m:"CT",d:"ICU"}
+    p:{name:"林*德",sex:"男性",age:65,addr:"新北市板橋區文化路",time:"2026/02/10 15:02",cc:"胸痛"},
+    r:{t:"給氧",m:"抽血",d:"急診留觀"}
   }
 ];
 
-function fmt(t){
-  const d=new Date(t);
-  return `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`;
+function maskName(n){
+  if(loggedIn) return n;
+  return n[0] + "○" + n[n.length-1];
+}
+function maskAddr(a){
+  if(loggedIn) return a;
+  return a.slice(0,6) + "＊＊＊";
+}
+
+function toggleLogin(){
+  loggedIn = !loggedIn;
+  document.getElementById("loginBtn").innerText = loggedIn ? "🔐 醫院端登入" : "🔓 未登入";
+  render();
 }
 
 function render(){
-  list.innerHTML="";
-  tasks.forEach((t,i)=>{
+  const q = document.getElementById("search").value;
+  list.innerHTML = "";
+
+  tasks.filter(t=>{
+    const s = `${t.id}${t.p.name}${t.p.cc}`;
+    return s.includes(q);
+  }).forEach((t,i)=>{
     const done=!!t.r.d;
     list.innerHTML+=`
     <div class="task">
-      <div class="task-header" onclick="toggle(${i})">
+      <div class="task-header" onclick="${loggedIn?`toggle(${i})`:''}">
         <div>
           <div class="task-id">${t.id}</div>
-          <div class="task-meta">
-            ${t.p.name}｜${t.p.sex} ${t.p.age}歲｜${t.p.cc}<br>
-            報案：${fmt(t.p.time)}
+          <div class="meta">
+            ${maskName(t.p.name)}｜${t.p.sex} ${t.p.age}歲｜${t.p.cc}<br>
+            ${t.p.time}
           </div>
         </div>
-        <span class="badge ${done?"done":"pending"}">${done?"已回報":"待回報"}</span>
+        <span class="badge ${done?'done':'pending'}">${done?'已回報':'待回報'}</span>
       </div>
-      <div class="task-body" id="b${i}">
-        <div class="kv">
-          <div>姓名</div><div>${t.p.name}</div>
-          <div>性別 / 年齡</div><div>${t.p.sex} / ${t.p.age}</div>
-          <div>地址</div><div>${t.p.addr}</div>
-          <div>報案時間</div><div>${fmt(t.p.time)}</div>
-          <div>主訴</div><div>${t.p.cc}</div>
-          <div>後送醫院</div><div>北市立萬芳醫院</div>
-        </div>
-        <hr>
-        ${
-          done
-          ? `處置：${t.r.t}<br>治療：${t.r.m}<br>動向：${t.r.d}`
-          : `
-          <label>處置</label><textarea id="t${i}"></textarea>
-          <label>治療</label><textarea id="m${i}"></textarea>
-          <label>病人動向</label>
-          <select id="d${i}">
-            <option></option>
-            <option>急診留觀</option>
-            <option>一般病房</option>
-            <option>ICU</option>
-            <option>出院</option>
-          </select>
-          <button onclick="save(${i})">送出回報</button>`
-        }
-      </div>
+      ${
+        loggedIn
+        ? `<div class="task-body" id="b${i}">
+            <div class="kv">
+              <div>姓名</div><div>${t.p.name}</div>
+              <div>地址</div><div>${t.p.addr}</div>
+              <div>主訴</div><div>${t.p.cc}</div>
+              <div>後送醫院</div><div>北市立萬芳醫院</div>
+            </div>
+            <hr>
+            ${done?`處置：${t.r.t}<br>治療：${t.r.m}<br>動向：${t.r.d}`:`<i>尚未回報</i>`}
+          </div>`
+        : ``
+      }
     </div>`;
   });
 }
 
 function toggle(i){
-  document.querySelectorAll(".task-body").forEach((b,idx)=>{
-    b.style.display = idx===i && b.style.display!=="block" ? "block":"none";
-  });
-}
-
-function save(i){
-  tasks[i].r={
-    t:document.getElementById("t"+i).value,
-    m:document.getElementById("m"+i).value,
-    d:document.getElementById("d"+i).value
-  };
-  render();
-}
-
-function createTask(){
-  tasks.unshift({
-    id:`EMS-20260210-${String(seq++).padStart(4,"0")}`,
-    p:{
-      name:name.value,sex:sex.value,age:age.value,
-      addr:addr.value,time:time.value,cc:cc.value
-    },
-    r:{}
-  });
-  render();
+  const el=document.getElementById("b"+i);
+  el.style.display = el.style.display==="block"?"none":"block";
 }
 
 render();
