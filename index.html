@@ -385,27 +385,19 @@
     if (pw.length < 6) { showRegErr('密碼至少需要 6 位數'); return; }
     if (pw !== pw2) { showRegErr('兩次密碼不一致，請重新輸入'); return; }
 
-    const { data, error } = await supabase.auth.signUp({
+    const { error } = await supabase.auth.signUp({
       email, password: pw,
-      options: { data: { display_name: name } }
+      options: { data: { display_name: name || email } }
     });
     if (error) {
       const msg = error.message.includes('already') ? '此 Email 已被註冊，請直接登入' : '註冊失敗：' + error.message;
       showRegErr(msg);
-    } else if (data?.user) {
-      // 同步寫入 profiles 表
-      await supabase.from('profiles').insert({
-        id: data.user.id,
-        email: email,
-        display_name: name || email,
-        role: 'ems',
-        unit: '',
-        is_active: true
-      });
-      okEl.textContent = '✓ 帳號建立成功！請至信箱點擊驗證連結後再登入。';
+    } else {
+      okEl.textContent = '✓ 帳號建立成功！若需要 Email 驗證請至信箱點擊連結，否則直接切換至登入。';
       okEl.style.display = 'block';
     }
   };
+
 
   window.switchAuthTab = function(tab) {
     document.getElementById('tab-login').classList.toggle('active', tab === 'login');
