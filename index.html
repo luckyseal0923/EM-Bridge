@@ -408,6 +408,7 @@
       showRegErr(msg);
     } else {
       // 暫存登入資訊，顯示成功彈窗
+      _isRegistering = true;
       _pendingEmail = email; _pendingPw = pw;
       document.getElementById('regSuccessMsg').textContent =
         `您的帳號「${name || email}」已建立完成！`;
@@ -415,11 +416,12 @@
     }
   };
 
-  let _pendingEmail = ''; let _pendingPw = '';
+  let _pendingEmail = ''; let _pendingPw = ''; let _isRegistering = false;
 
   window.doAutoLogin = async function() {
     const btn = document.getElementById('autoLoginBtn');
     btn.textContent = '登入中…'; btn.disabled = true;
+    _isRegistering = false;
     const { error } = await supabase.auth.signInWithPassword({
       email: _pendingEmail, password: _pendingPw
     });
@@ -431,6 +433,7 @@
   };
 
   window.closeRegSuccessModal = function() {
+    _isRegistering = false;
     document.getElementById('regSuccessModal').style.display = 'none';
     _pendingEmail = ''; _pendingPw = '';
     switchAuthTab('login');
@@ -458,6 +461,8 @@
 
   // ===== Auth State Listener =====
   supabase.auth.onAuthStateChange(async (event, session) => {
+    // 如果正在顯示註冊成功彈窗，跳過自動登入流程
+    if (_isRegistering) return;
     currentUser = session?.user ?? null;
     if (currentUser) {
       // 檢查帳號是否啟用
