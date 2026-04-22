@@ -197,7 +197,10 @@
     <div class="auth-panel active" id="panel-login">
       <label>電子郵件</label>
       <input id="loginEmail" type="email" placeholder="請輸入 Email" autocomplete="username" />
-      <label>密碼</label>
+      <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:6px;">
+        <label style="margin-bottom:0;">密碼</label>
+        <a href="#" onclick="doForgotPassword();return false;" tabindex="-1" style="font-size:12px;color:var(--primary);text-decoration:none;">忘記密碼？</a>
+      </div>
       <input id="loginPassword" type="password" placeholder="請輸入密碼" autocomplete="current-password"
              onkeydown="if(event.key==='Enter') doLogin()" />
       <button class="login-btn" onclick="doLogin()">登入</button>
@@ -366,6 +369,19 @@
   </div>
 </div>
 
+<!-- Reset Password Modal -->
+<div id="resetPwdModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:999;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:24px;padding:36px;width:380px;box-shadow:0 30px 80px rgba(0,0,0,.3);animation:fadeInUp .35s ease;">
+    <h2 style="margin:0 0 10px;font-size:22px;color:#1e293b;">重新設定密碼</h2>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:24px;">請設定您的新密碼（至少 6 位數）</p>
+    <label style="display:block;font-size:13px;font-weight:600;color:#334155;margin-bottom:6px;">新密碼</label>
+    <input id="newPwd1" type="password" placeholder="輸入新密碼" style="width:100%;margin-bottom:12px;padding:12px;border:1px solid #e2e8f0;border-radius:12px;outline:none;" />
+    <label style="display:block;font-size:13px;font-weight:600;color:#334155;margin-bottom:6px;">確認新密碼</label>
+    <input id="newPwd2" type="password" placeholder="再次輸入新密碼" style="width:100%;margin-bottom:24px;padding:12px;border:1px solid #e2e8f0;border-radius:12px;outline:none;" />
+    <button id="btnResetConfirm" onclick="doResetPassword()" style="width:100%;background:var(--primary);color:#fff;border:none;border-radius:12px;padding:13px;font-size:15px;font-weight:700;cursor:pointer;">確認重設</button>
+  </div>
+</div>
+
 <!-- Supabase SDK -->
 <script type="module">
   import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
@@ -496,6 +512,61 @@
     switchAuthTab('login');
   };
 
+  // ===== Forgot Password =====
+  window.doForgotPassword = async function() {
+    const email = document.getElementById('loginEmail').value.trim();
+    if (!email) {
+      showLoginErr('請先在上方的「電子郵件」欄位輸入您的 Email，再點擊忘記密碼。');
+      return;
+    }
+    if (!confirm(`系統將寄送「重設密碼信」至：\n${email}\n是否確定寄送？`)) return;
+
+    const btn = document.querySelector('.login-btn');
+    const ogText = btn.textContent;
+    btn.textContent = '信件寄送中...'; btn.disabled = true;
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.origin + window.location.pathname,
+      });
+      if (error) {
+        showLoginErr('寄送信件失敗，請稍後再試。');
+      } else {
+        const errEl = document.getElementById('loginErr');
+        errEl.textContent = '✅ 重設信件已寄出！請前往信箱收取。'; 
+        errEl.style.color = '#059669'; errEl.style.display = 'block';
+        setTimeout(() => { errEl.style.color = 'var(--primary)'; errEl.style.display = 'none'; }, 8000);
+      }
+    } catch(err) {
+      console.error(err);
+      showLoginErr('發生錯誤，請重試。');
+    } finally {
+      btn.textContent = ogText; btn.disabled = false;
+    }
+  };
+
+  window.doResetPassword = async function() {
+    const pw1 = document.getElementById('newPwd1').value;
+    const pw2 = document.getElementById('newPwd2').value;
+    if (!pw1 || pw1.length < 6) { alert('密碼至少需要 6 位數'); return; }
+    if (pw1 !== pw2) { alert('兩次密碼不一致'); return; }
+    
+    const btn = document.getElementById('btnResetConfirm');
+    btn.textContent = '密碼更新中...'; btn.disabled = true;
+
+    const { error } = await supabase.auth.updateUser({ password: pw1 });
+    if (error) {
+      alert('密碼重設失敗，重設連結可能已失效，請重新申請。');
+      window.localStorage.clear(); window.sessionStorage.clear();
+      window.location.reload();
+    } else {
+      alert('✅ 密碼更新成功！請使用新密碼重新登入。');
+      await supabase.auth.signOut();
+      window.localStorage.clear(); window.sessionStorage.clear();
+      window.location.reload();
+    }
+  };
+
 
   window.switchAuthTab = function(tab) {
     document.getElementById('tab-login').classList.toggle('active', tab === 'login');
@@ -518,6 +589,13 @@
 
   // ===== Auth State Listener =====
   supabase.auth.onAuthStateChange(async (event, session) => {
+    if (event === 'PASSWORD_RECOVERY') {
+      _isRegistering = true; // 阻擋一般渲染邏輯
+      document.getElementById('loginOverlay').style.display = 'none';
+      document.getElementById('resetPwdModal').style.display = 'flex';
+      return;
+    }
+
     if (_isRegistering) return;
     currentUser = session?.user ?? null;
     if (currentUser) {
