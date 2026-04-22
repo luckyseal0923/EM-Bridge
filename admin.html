@@ -535,9 +535,13 @@
   supabase.auth.onAuthStateChange(async (event, session) => {
     const user = session?.user ?? null;
     if (user) {
+      // 🚀 [修正] 快速切換：只要偵測到基本 User 資訊，立即嘗試隱藏登入遮罩，避免重整時的大閃爍
+      document.getElementById('loginOverlay').style.display = 'none';
+      document.getElementById('appContent').style.display = 'block';
+
       try {
         const { data: profile, error } = await supabase
-          .from('profiles').select('is_active, display_name, role')
+          .from('profiles').select('id, is_active, display_name, role')
           .eq('id', user.id).single();
 
         if (error) throw error;
@@ -562,7 +566,9 @@
         if (!realtimeChannel) subscribeToTasks();
       } catch (err) {
         console.warn("驗證權限時發生錯誤 (可能為暫時性網路問題):", err);
-        // 不再激進地直接登出並清空快取，保留 session 嘗試下次連線
+        // 🚀 [修正] 容錯處理：若 Profile 暫時拿不到，只要 User 還在就不該強行跳出
+        document.getElementById('loginOverlay').style.display = 'none';
+        document.getElementById('appContent').style.display = 'block';
         document.getElementById('authStatus').textContent = '⚠️ 權限驗證延遲';
       }
     } else {

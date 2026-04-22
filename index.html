@@ -635,10 +635,15 @@
 
     if (_isRegistering) return;
     currentUser = session?.user ?? null;
+
     if (currentUser) {
+      // 🚀 [修正] 快速隱入：只要有 User，先隱藏登入框，讓使用者不會覺得被踢出去
+      document.getElementById('loginOverlay').style.display = 'none';
+      document.getElementById('appContent').style.display = 'block';
+
       try {
         const { data: profile, error } = await supabase
-          .from('profiles').select('is_active, display_name, role')
+          .from('profiles').select('id, is_active, display_name, role')
           .eq('id', currentUser.id).single();
           
         if (error) throw error;
@@ -665,8 +670,10 @@
         if (!realtimeChannel) subscribeToTasks();
       } catch (err) {
         console.warn("驗證個案身分時發生錯誤 (可能為暫時性網路問題):", err);
-        // 不再激進地直接登出並清空快取，保留 session 嘗試下次連線
-        document.getElementById('authStatus').textContent = '⚠️ 連線不穩定';
+        // 🚀 [修正] 即便驗證失敗，只要 User 還在，就不要顯示登入框
+        document.getElementById('loginOverlay').style.display = 'none';
+        document.getElementById('appContent').style.display = 'block';
+        document.getElementById('authStatus').textContent = '⚠️ 連線不穩';
       }
     } else {
       document.getElementById('loginOverlay').style.display = 'flex';
