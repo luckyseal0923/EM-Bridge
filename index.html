@@ -749,8 +749,29 @@
     const btn = document.getElementById('createBtn');
     btn.disabled = true; btn.textContent = '建立中…';
 
+    // 生成案號 (EMS-日期-流水號)
+    let finalCaseId = '';
+    const dateStr = time ? time.slice(0, 10).replace(/-/g, '') : getNowText().slice(0, 10).replace(/-/g, '');
+    const prefix = `EMS-${dateStr}-`;
+    
+    // 查詢當日最高號碼
+    const { data: latest } = await supabase
+      .from('cases')
+      .select('case_id')
+      .ilike('case_id', `${prefix}%`)
+      .order('case_id', { ascending: false })
+      .limit(1);
+    
+    if (latest && latest.length > 0) {
+      const lastId = latest[0].case_id;
+      const lastSeq = parseInt(lastId.slice(-2));
+      finalCaseId = prefix + String(lastSeq + 1).padStart(2, '0');
+    } else {
+      finalCaseId = prefix + '01';
+    }
+
     const { error } = await supabase.from('cases').insert({
-      case_id: makeId(),
+      case_id: finalCaseId,
       name: name || '未填姓名',
       birth: birth || null,
       gender: gender || '',

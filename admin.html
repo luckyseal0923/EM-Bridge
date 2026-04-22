@@ -252,7 +252,15 @@
   <!-- Tab Navigation -->
   <div class="tab-nav" id="mainTabNav">
     <button class="tab-btn active" id="tab-cases" onclick="switchMainTab('cases')">📋 案件管理</button>
-    <button class="tab-btn" id="tab-users" onclick="switchMainTab('users')">👥 帳號管理</button>
+    <button class="tab-btn" id="tab-users" onclick="switchMainTab('users')" style="display:none;">👥 帳號管理</button>
+  </div>
+
+  <!-- Platform Admin Only Notice -->
+  <div id="platformAdminOnlyNotice" style="display:none; padding:60px 24px; text-align:center; background:#fff; border-radius:18px; margin:20px; border:1px solid #fee2e2;">
+    <div style="font-size:48px; margin-bottom:20px;">⚠️</div>
+    <h2 style="color:#b91c1c; margin-bottom:12px;">權限不足</h2>
+    <p style="color:#64748b; max-width:400px; margin:0 auto 24px;">只有「平台管理者 (Platform_Admin)」才能存取帳號管理功能。請登出並更換具備權限的帳號後再行操作。</p>
+    <button class="login-btn" style="width:auto; padding:12px 32px;" onclick="doLogout()">立即登出</button>
   </div>
 
   <!-- Cases Panel -->
@@ -394,7 +402,8 @@
         <label style="font-size:.8rem;color:#64748b;font-weight:600;">權限</label>
         <select id="userRole" style="width:100%;margin-top:4px;padding:10px;border:1px solid #e2e8f0;border-radius:8px;font-size:.9rem;">
           <option value="user">使用者(不能進管理頁面)</option>
-          <option value="admin">管理者</option>
+          <option value="admin">管理者(僅限案件管理)</option>
+          <option value="platform_admin">平台管理者(最高權限)</option>
         </select>
       </div>
       <div>
@@ -422,6 +431,7 @@
   .tab-btn.active { color:#dc2626; border-bottom-color:#dc2626; }
   .tab-btn:hover:not(.active) { color:#334155; background:#f8fafc; }
   .role-tag { display:inline-block; padding:2px 10px; border-radius:20px; font-size:.78rem; font-weight:600; }
+  .role-platform_admin { background:#f3e8ff; color:#7e22ce; }
   .role-admin { background:#fee2e2; color:#dc2626; }
   .role-user { background:#dbeafe; color:#1d4ed8; }
   .active-badge { display:inline-block; padding:2px 10px; border-radius:20px; font-size:.78rem; font-weight:600; background:#d1fae5; color:#065f46; }
@@ -448,6 +458,7 @@
   let currentPage = 1;
   const PAGE_SIZE = 15;
   let realtimeChannel = null;
+  let currentUserRole = ''; // 新增：追蹤目前權限
 
   // ===== Auto-Heal Seamless Re-Login =====
   setTimeout(() => {
@@ -531,7 +542,7 @@
 
         if (error) throw error;
 
-        if (!profile || !profile.is_active || profile.role !== 'admin') {
+        if (!profile || !profile.is_active || (profile.role !== 'admin' && profile.role !== 'platform_admin')) {
           document.getElementById('loginOverlay').style.display = 'flex';
           document.getElementById('appContent').style.display = 'none';
           if (realtimeChannel) { supabase.removeChannel(realtimeChannel); realtimeChannel = null; }
@@ -539,8 +550,13 @@
           return;
         }
 
+        currentUserRole = profile.role;
         document.getElementById('loginOverlay').style.display = 'none';
         document.getElementById('appContent').style.display = 'block';
+
+        // 根據權限決定是否顯示帳號管理分頁按鈕
+        document.getElementById('tab-users').style.display = (currentUserRole === 'platform_admin') ? 'inline-block' : 'none';
+
         const displayName = profile?.display_name || user.email;
         document.getElementById('authStatus').textContent = '✓ ' + displayName;
         if (!realtimeChannel) subscribeToTasks();
@@ -957,6 +973,17 @@
 
   // ===== Tab Switching =====
   window.switchMainTab = function(tab) {
+    // 權限檢查
+    if (tab === 'users' && currentUserRole !== 'platform_admin') {
+      document.getElementById('tab-cases').classList.remove('active');
+      document.getElementById('tab-users').classList.add('active');
+      document.getElementById('panel-cases').style.display = 'none';
+      document.getElementById('panel-users').style.display = 'none';
+      document.getElementById('platformAdminOnlyNotice').style.display = 'block';
+      return;
+    }
+
+    document.getElementById('platformAdminOnlyNotice').style.display = 'none';
     document.getElementById('tab-cases').classList.toggle('active', tab === 'cases');
     document.getElementById('tab-users').classList.toggle('active', tab === 'users');
     document.getElementById('panel-cases').style.display = tab === 'cases' ? '' : 'none';
@@ -1018,7 +1045,7 @@
   }
 
   function roleLabel(r) {
-    const map = { admin:'管理者', user:'使用者' };
+    const map = { platform_admin: '平台管理者', admin:'管理者', user:'使用者' };
     return map[r] || r;
   }
 
