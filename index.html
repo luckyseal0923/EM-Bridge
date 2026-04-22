@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8" />
@@ -351,22 +351,19 @@
 
   // ===== Auth =====
   window.doLogin = async function() {
-    const email = document.getElementById("loginEmail").value.trim();
-    const password = document.getElementById("loginPassword").value;
-    const errEl = document.getElementById("loginErr");
-    errEl.style.display = "none";
-    if (!email || !password) { showLoginErr("請輸入帳號與密碼"); return; }
-    try {
-      await signInWithEmailAndPassword(auth, email, password);
-    } catch (e) {
-      const msg = e.code === "auth/invalid-credential" || e.code === "auth/wrong-password" || e.code === "auth/user-not-found"
-        ? "帳號或密碼錯誤" : "登入失敗：" + e.message;
-      showLoginErr(msg);
+    const email = document.getElementById('loginEmail').value.trim();
+    const password = document.getElementById('loginPassword').value;
+    const errEl = document.getElementById('loginErr');
+    errEl.style.display = 'none';
+    if (!email || !password) { showLoginErr('請輸入帳號與密碼'); return; }
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+      showLoginErr(error.message.includes('Invalid') ? '帳號或密碼錯誤' : '登入失敗：' + error.message);
     }
   };
 
   window.doLogout = async function() {
-    if (unsubscribe) unsubscribe();
+    if (realtimeChannel) supabase.removeChannel(realtimeChannel);
     await supabase.auth.signOut();
   };
 
@@ -388,15 +385,24 @@
     if (pw.length < 6) { showRegErr('密碼至少需要 6 位數'); return; }
     if (pw !== pw2) { showRegErr('兩次密碼不一致，請重新輸入'); return; }
 
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email, password: pw,
       options: { data: { display_name: name } }
     });
     if (error) {
       const msg = error.message.includes('already') ? '此 Email 已被註冊，請直接登入' : '註冊失敗：' + error.message;
       showRegErr(msg);
-    } else {
-      okEl.textContent = '✓ 帳號建立成功，正在登入…';
+    } else if (data?.user) {
+      // 同步寫入 profiles 表
+      await supabase.from('profiles').insert({
+        id: data.user.id,
+        email: email,
+        display_name: name || email,
+        role: 'ems',
+        unit: '',
+        is_active: true
+      });
+      okEl.textContent = '✓ 帳號建立成功！請至信箱點擊驗證連結後再登入。';
       okEl.style.display = 'block';
     }
   };
@@ -424,9 +430,19 @@
   supabase.auth.onAuthStateChange(async (event, session) => {
     currentUser = session?.user ?? null;
     if (currentUser) {
+      // 檢查帳號是否啟用
+      const { data: profile } = await supabase
+        .from('profiles').select('is_active, display_name, role')
+        .eq('id', currentUser.id).single();
+      if (profile && !profile.is_active) {
+        await supabase.auth.signOut();
+        showLoginErr('此帳號已被停用，請聯絡管理員');
+        return;
+      }
       document.getElementById('loginOverlay').style.display = 'none';
       document.getElementById('appContent').style.display = 'block';
-      document.getElementById('authStatus').textContent = '✓ ' + currentUser.email;
+      const displayName = profile?.display_name || currentUser.email;
+      document.getElementById('authStatus').textContent = '✓ ' + displayName;
       if (!realtimeChannel) subscribeToTasks();
     } else {
       document.getElementById('loginOverlay').style.display = 'flex';
@@ -437,6 +453,7 @@
   });
 
   // ===== Supabase Realtime listener =====
+
   async function subscribeToTasks() {
     const { data, error } = await supabase
       .from('cases').select('*').order('created_at', { ascending: false });

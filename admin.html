@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8" />
@@ -248,8 +248,17 @@
     </div>
   </div>
 
+  <!-- Tab Navigation -->
+  <div class="tab-nav" id="mainTabNav">
+    <button class="tab-btn active" id="tab-cases" onclick="switchMainTab('cases')">📋 案件管理</button>
+    <button class="tab-btn" id="tab-users" onclick="switchMainTab('users')">👥 帳號管理</button>
+  </div>
+
+  <!-- Cases Panel -->
+  <div id="panel-cases">
   <!-- Controls -->
   <div class="controls-bar">
+
     <input type="text" id="searchInput" placeholder="搜尋案件編號 / 姓名 / 主訴 / 醫院" oninput="applyFilter()" />
     <select id="monthFilter" onchange="applyFilter()">
       <option value="">全部月份</option>
@@ -294,7 +303,39 @@
     <div class="pager-info" id="pagerInfo">-</div>
     <div class="pager-btns" id="pagerBtns"></div>
   </div>
-</div>
+  </div><!-- end panel-cases -->
+
+  <!-- Users Panel -->
+  <div id="panel-users" style="display:none;">
+    <div class="controls-bar">
+      <input type="text" id="userSearchInput" placeholder="搜尋姓名 / Email / 單位" oninput="applyUserFilter()" />
+      <select id="userRoleFilter" onchange="applyUserFilter()">
+        <option value="">全部角色</option>
+        <option value="admin">管理員</option>
+        <option value="ems">EMS</option>
+        <option value="hospital">醫院</option>
+        <option value="gov">衛生局</option>
+      </select>
+      <button class="btn-primary" onclick="openUserModal()">＋ 新增使用者</button>
+    </div>
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>姓名 / 單位</th>
+            <th>Email</th>
+            <th>角色</th>
+            <th>狀態</th>
+            <th>建立時間</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody id="userTableBody">
+          <tr><td colspan="6"><div class="loading-wrap"><div class="spinner"></div>載入中…</div></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div><!-- end panel-users -->
 
 <!-- Detail Drawer -->
 <div id="drawerOverlay" onclick="closeDrawer()"></div>
@@ -330,6 +371,65 @@
     </div>
   </div>
 </div>
+
+<!-- User Create/Edit Modal -->
+<div id="userModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;display:none;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:16px;padding:32px;width:420px;max-width:95vw;box-shadow:0 20px 60px rgba(0,0,0,.3);">
+    <h3 id="userModalTitle" style="margin:0 0 20px;font-size:1.1rem;color:#1e293b;">新增使用者</h3>
+    <input type="hidden" id="editProfileId" />
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <div>
+        <label style="font-size:.8rem;color:#64748b;font-weight:600;">Email *</label>
+        <input id="userEmail" type="email" placeholder="user@example.com" style="width:100%;margin-top:4px;padding:10px;border:1px solid #e2e8f0;border-radius:8px;font-size:.9rem;" />
+      </div>
+      <div id="userPasswordField">
+        <label style="font-size:.8rem;color:#64748b;font-weight:600;">密碼 * (至少 6 位)</label>
+        <input id="userPassword" type="password" placeholder="••••••••" style="width:100%;margin-top:4px;padding:10px;border:1px solid #e2e8f0;border-radius:8px;font-size:.9rem;" />
+      </div>
+      <div>
+        <label style="font-size:.8rem;color:#64748b;font-weight:600;">姓名 / 顯示名稱</label>
+        <input id="userDisplayName" type="text" placeholder="例如：張○雄" style="width:100%;margin-top:4px;padding:10px;border:1px solid #e2e8f0;border-radius:8px;font-size:.9rem;" />
+      </div>
+      <div>
+        <label style="font-size:.8rem;color:#64748b;font-weight:600;">角色</label>
+        <select id="userRole" style="width:100%;margin-top:4px;padding:10px;border:1px solid #e2e8f0;border-radius:8px;font-size:.9rem;">
+          <option value="ems">EMS</option>
+          <option value="hospital">醫院</option>
+          <option value="gov">衛生局</option>
+          <option value="admin">管理員</option>
+        </select>
+      </div>
+      <div>
+        <label style="font-size:.8rem;color:#64748b;font-weight:600;">單位</label>
+        <input id="userUnit" type="text" placeholder="例如：基隆市消防局" style="width:100%;margin-top:4px;padding:10px;border:1px solid #e2e8f0;border-radius:8px;font-size:.9rem;" />
+      </div>
+      <div id="userModalErr" style="display:none;color:#dc2626;font-size:.85rem;padding:8px;background:#fef2f2;border-radius:6px;"></div>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px;">
+      <button onclick="closeUserModal()" style="padding:10px 20px;border:1px solid #e2e8f0;border-radius:8px;background:#fff;cursor:pointer;">取消</button>
+      <button onclick="saveUser()" style="padding:10px 20px;border:none;border-radius:8px;background:#dc2626;color:#fff;cursor:pointer;font-weight:600;" id="saveUserBtn">儲存</button>
+    </div>
+  </div>
+</div>
+
+<style>
+  .tab-nav { display:flex; gap:4px; padding:0 24px; background:#fff; border-bottom:1px solid #e2e8f0; }
+  .tab-btn { padding:14px 20px; border:none; background:transparent; font-size:.9rem; font-weight:600; color:#64748b; cursor:pointer; border-bottom:3px solid transparent; margin-bottom:-1px; transition:all .2s; }
+  .tab-btn.active { color:#dc2626; border-bottom-color:#dc2626; }
+  .tab-btn:hover:not(.active) { color:#334155; background:#f8fafc; }
+  .role-tag { display:inline-block; padding:2px 10px; border-radius:20px; font-size:.78rem; font-weight:600; }
+  .role-admin { background:#fee2e2; color:#dc2626; }
+  .role-ems { background:#dbeafe; color:#1d4ed8; }
+  .role-hospital { background:#d1fae5; color:#065f46; }
+  .role-gov { background:#fef3c7; color:#92400e; }
+  .active-badge { display:inline-block; padding:2px 10px; border-radius:20px; font-size:.78rem; font-weight:600; background:#d1fae5; color:#065f46; }
+  .inactive-badge { display:inline-block; padding:2px 10px; border-radius:20px; font-size:.78rem; font-weight:600; background:#fee2e2; color:#dc2626; }
+  .action-btns { display:flex; gap:6px; }
+  .action-btns button { padding:4px 10px; border-radius:6px; border:none; cursor:pointer; font-size:.8rem; font-weight:600; }
+  .btn-edit { background:#dbeafe; color:#1d4ed8; }
+  .btn-toggle { background:#fef3c7; color:#92400e; }
+  .btn-reset { background:#f3f4f6; color:#374151; }
+</style>
 
 <!-- Supabase SDK -->
 <script type="module">
@@ -691,6 +791,161 @@
     if (today.getMonth() < b.getMonth() || (today.getMonth() === b.getMonth() && today.getDate() < b.getDate())) age--;
     return age;
   }
+
+  // ===== Tab Switching =====
+  window.switchMainTab = function(tab) {
+    document.getElementById('tab-cases').classList.toggle('active', tab === 'cases');
+    document.getElementById('tab-users').classList.toggle('active', tab === 'users');
+    document.getElementById('panel-cases').style.display = tab === 'cases' ? '' : 'none';
+    document.getElementById('panel-users').style.display = tab === 'users' ? '' : 'none';
+    if (tab === 'users') loadUsers();
+  };
+
+  // ===== User Management =====
+  let allUsers = [];
+  let filteredUsers = [];
+
+  async function loadUsers() {
+    const { data, error } = await supabase
+      .from('profiles').select('*').order('created_at', { ascending: false });
+    if (error) {
+      document.getElementById('userTableBody').innerHTML =
+        `<tr><td colspan="6">⚠️ 無法載入：${error.message}</td></tr>`;
+      return;
+    }
+    allUsers = data || [];
+    applyUserFilter();
+  }
+
+  window.applyUserFilter = function() {
+    const q = (document.getElementById('userSearchInput')?.value || '').toLowerCase();
+    const role = document.getElementById('userRoleFilter')?.value || '';
+    filteredUsers = allUsers.filter(u => {
+      const kw = [u.display_name || '', u.email, u.unit || ''].join(' ').toLowerCase().includes(q);
+      const rl = !role || u.role === role;
+      return kw && rl;
+    });
+    renderUserTable();
+  };
+
+  function renderUserTable() {
+    const tbody = document.getElementById('userTableBody');
+    if (!filteredUsers.length) {
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:24px;color:#94a3b8;">目前沒有使用者</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = filteredUsers.map(u => `
+      <tr>
+        <td>
+          <div style="font-weight:600;color:#1e293b;">${u.display_name || '-'}</div>
+          <div style="font-size:.8rem;color:#94a3b8;">${u.unit || ''}</div>
+        </td>
+        <td style="color:#475569;">${u.email}</td>
+        <td><span class="role-tag role-${u.role}">${roleLabel(u.role)}</span></td>
+        <td>${u.is_active
+          ? '<span class="active-badge">啟用</span>'
+          : '<span class="inactive-badge">停用</span>'}</td>
+        <td style="color:#94a3b8;font-size:.85rem;">${u.created_at ? u.created_at.slice(0,10) : '-'}</td>
+        <td>
+          <div class="action-btns">
+            <button class="btn-edit" onclick="openUserModal('${u.id}')">編輯</button>
+            <button class="btn-toggle" onclick="toggleUserActive('${u.id}', ${u.is_active})">${u.is_active ? '停用' : '啟用'}</button>
+            <button class="btn-reset" onclick="sendResetEmail('${u.email}')">重設密碼</button>
+          </div>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  function roleLabel(r) {
+    const map = { admin:'管理員', ems:'EMS', hospital:'醫院', gov:'衛生局' };
+    return map[r] || r;
+  }
+
+  // ===== User Modal =====
+  window.openUserModal = function(profileId) {
+    document.getElementById('userModalErr').style.display = 'none';
+    document.getElementById('editProfileId').value = profileId || '';
+    if (profileId) {
+      const u = allUsers.find(x => x.id === profileId);
+      if (!u) return;
+      document.getElementById('userModalTitle').textContent = '編輯使用者';
+      document.getElementById('userEmail').value = u.email;
+      document.getElementById('userEmail').disabled = true;
+      document.getElementById('userPasswordField').style.display = 'none';
+      document.getElementById('userDisplayName').value = u.display_name || '';
+      document.getElementById('userRole').value = u.role || 'ems';
+      document.getElementById('userUnit').value = u.unit || '';
+    } else {
+      document.getElementById('userModalTitle').textContent = '新增使用者';
+      document.getElementById('userEmail').value = '';
+      document.getElementById('userEmail').disabled = false;
+      document.getElementById('userPasswordField').style.display = '';
+      document.getElementById('userPassword').value = '';
+      document.getElementById('userDisplayName').value = '';
+      document.getElementById('userRole').value = 'ems';
+      document.getElementById('userUnit').value = '';
+    }
+    document.getElementById('userModal').style.display = 'flex';
+  };
+
+  window.closeUserModal = function() {
+    document.getElementById('userModal').style.display = 'none';
+  };
+
+  window.saveUser = async function() {
+    const profileId = document.getElementById('editProfileId').value;
+    const email = document.getElementById('userEmail').value.trim();
+    const password = document.getElementById('userPassword').value;
+    const displayName = document.getElementById('userDisplayName').value.trim();
+    const role = document.getElementById('userRole').value;
+    const unit = document.getElementById('userUnit').value.trim();
+    const errEl = document.getElementById('userModalErr');
+    errEl.style.display = 'none';
+
+    const showErr = (msg) => { errEl.textContent = msg; errEl.style.display = 'block'; };
+
+    if (profileId) {
+      // 編輯模式：只更新 profiles 表
+      const { error } = await supabase.from('profiles').update({
+        display_name: displayName, role, unit
+      }).eq('id', profileId);
+      if (error) { showErr('更新失敗：' + error.message); return; }
+    } else {
+      // 新增模式：先 signUp 建立 auth 帳號
+      if (!email) { showErr('請輸入 Email'); return; }
+      if (password.length < 6) { showErr('密碼至少需要 6 位'); return; }
+      const { data, error } = await supabase.auth.signUp({ email, password });
+      if (error) { showErr('建立帳號失敗：' + error.message); return; }
+      if (!data?.user) { showErr('建立帳號失敗'); return; }
+      // 寫入 profiles 表
+      const { error: pe } = await supabase.from('profiles').insert({
+        id: data.user.id, email,
+        display_name: displayName || email,
+        role, unit, is_active: true
+      });
+      if (pe) { showErr('帳號已建立但 profile 寫入失敗：' + pe.message); return; }
+    }
+    closeUserModal();
+    await loadUsers();
+  };
+
+  window.toggleUserActive = async function(profileId, currentActive) {
+    const action = currentActive ? '停用' : '啟用';
+    if (!confirm(`確定要${action}此帳號？`)) return;
+    const { error } = await supabase.from('profiles').update({
+      is_active: !currentActive
+    }).eq('id', profileId);
+    if (error) { alert(`${action}失敗：` + error.message); return; }
+    await loadUsers();
+  };
+
+  window.sendResetEmail = async function(email) {
+    if (!confirm(`確定要發送密碼重設信給 ${email}？`)) return;
+    const { error } = await supabase.auth.resetPasswordForEmail(email);
+    if (error) { alert('發送失敗：' + error.message); }
+    else { alert(`✓ 密碼重設信已發送至 ${email}`); }
+  };
 </script>
 </body>
 </html>
