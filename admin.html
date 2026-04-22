@@ -473,9 +473,21 @@
   supabase.auth.onAuthStateChange(async (event, session) => {
     const user = session?.user ?? null;
     if (user) {
+      // 檢查是否為管理員
+      const { data: profile } = await supabase
+        .from('profiles').select('is_active, display_name, role')
+        .eq('id', user.id).single();
+
+      if (!profile || !profile.is_active || profile.role !== 'admin') {
+        await supabase.auth.signOut();
+        showLoginErr('權限不足，此頁面僅限管理員登入。已停用帳號或非管理員會被登出。');
+        return;
+      }
+
       document.getElementById('loginOverlay').style.display = 'none';
       document.getElementById('appContent').style.display = 'block';
-      document.getElementById('authStatus').textContent = '✓ ' + user.email;
+      const displayName = profile?.display_name || user.email;
+      document.getElementById('authStatus').textContent = '✓ ' + displayName;
       if (!realtimeChannel) subscribeToTasks();
     } else {
       document.getElementById('loginOverlay').style.display = 'flex';

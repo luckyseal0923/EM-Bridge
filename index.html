@@ -234,7 +234,7 @@
     <div class="top-actions">
       <span class="pill" id="authStatus">未登入</span>
       <button class="btn-outline" onclick="doLogout()">登出</button>
-      <button class="btn-outline" onclick="goAdmin()">後臺管理系統</button>
+      <button class="btn-outline" id="btnAdmin" style="display:none;" onclick="goAdmin()">後臺管理系統</button>
     </div>
   </div>
 
@@ -478,6 +478,14 @@
       document.getElementById('appContent').style.display = 'block';
       const displayName = profile?.display_name || currentUser.email;
       document.getElementById('authStatus').textContent = '✓ ' + displayName;
+      
+      // 根據權限顯示後台按鈕
+      if (profile?.role === 'admin') {
+        document.getElementById('btnAdmin').style.display = 'inline-block';
+      } else {
+        document.getElementById('btnAdmin').style.display = 'none';
+      }
+
       if (!realtimeChannel) subscribeToTasks();
     } else {
       document.getElementById('loginOverlay').style.display = 'flex';
