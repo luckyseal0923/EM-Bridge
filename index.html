@@ -219,6 +219,7 @@
       <input id="regName" type="text" placeholder="例如：王小明" />
       <label>所屬單位</label>
       <select id="regUnit" style="width:100%;margin-bottom:15px;padding:12px;border:1px solid #e2e8f0;border-radius:10px;background:#f8fafc;font-size:1rem;color:#1e293b;-webkit-appearance:none;appearance:none;cursor:pointer;">
+        <option value="" disabled selected hidden>請選擇</option>
         <option value="EMS">EMS</option>
         <option value="醫院端">醫院端</option>
         <option value="衛生所端">衛生所端</option>
@@ -484,6 +485,7 @@
 
     if (!email) { showRegErr('請輸入電子郵件'); return; }
     if (!name) { showRegErr('請輸入姓名'); return; }
+    if (!regUnit) { showRegErr('請選擇所屬單位'); return; }
     if (pw.length < 6) { showRegErr('密碼至少需要 6 位數'); return; }
     if (pw !== pw2) { showRegErr('兩次密碼不一致，請重新輸入'); return; }
 
