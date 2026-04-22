@@ -540,6 +540,9 @@
       document.getElementById('appContent').style.display = 'block';
       document.getElementById('authStatus').textContent = '⌛ 驗證中...';
 
+      // 🚀 [修正] 併行加載：有 Session 就先抓資料與即時監聽，不用等 Profile
+      if (!realtimeChannel) subscribeToTasks();
+
       try {
         const { data: profile, error } = await supabase
           .from('profiles').select('id, is_active, display_name, role')
@@ -564,7 +567,7 @@
 
         const displayName = profile?.display_name || user.email;
         document.getElementById('authStatus').textContent = '✓ ' + displayName;
-        if (!realtimeChannel) subscribeToTasks();
+        // 舊位子移除，已改為上方併行加載
       } catch (err) {
         console.warn("驗證權限時發生錯誤 (可能為暫時性網路問題):", err);
         // 🚀 [修正] 容錯處理：若 Profile 暫時拿不到，只要 User 還在就不該強行跳出

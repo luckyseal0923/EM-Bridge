@@ -641,6 +641,9 @@
       document.getElementById('loginOverlay').style.display = 'none';
       document.getElementById('appContent').style.display = 'block';
       document.getElementById('authStatus').textContent = '⌛ 驗證中...';
+      
+      // 🚀 [修正] 併行加載：不用等到 Profile 抓完，只要有 Session 就先抓資料，減少「空畫面」感
+      if (!realtimeChannel) subscribeToTasks();
 
       try {
         const { data: profile, error } = await supabase
@@ -667,8 +670,7 @@
         } else {
           document.getElementById('btnAdmin').style.display = 'none';
         }
-
-        if (!realtimeChannel) subscribeToTasks();
+        // 舊位子移除，已改為上方併行加載
       } catch (err) {
         console.warn("驗證個案身分時發生錯誤 (可能為暫時性網路問題):", err);
         // 🚀 [修正] 即便驗證失敗，只要 User 還在，就不要顯示登入框
