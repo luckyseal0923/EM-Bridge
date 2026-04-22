@@ -208,8 +208,15 @@
     <div class="auth-panel" id="panel-register">
       <label>電子郵件</label>
       <input id="regEmail" type="email" placeholder="請輸入您的 Email" />
-      <label>姓名 / 單位</label>
-      <input id="regName" type="text" placeholder="例如：王小明（基隆消防局）" />
+      <label>姓名</label>
+      <input id="regName" type="text" placeholder="例如：王小明" />
+      <label>所屬單位</label>
+      <select id="regUnit" style="width:100%;margin-bottom:15px;padding:12px;border:1px solid #e2e8f0;border-radius:10px;background:#f8fafc;font-size:1rem;color:#1e293b;-webkit-appearance:none;appearance:none;cursor:pointer;">
+        <option value="EMS">EMS</option>
+        <option value="醫院端">醫院端</option>
+        <option value="衛生所端">衛生所端</option>
+        <option value="其他">其他</option>
+      </select>
       <label>密碼（至少 6 位數）</label>
       <input id="regPassword" type="password" placeholder="請設定密碼" />
       <label>確認密碼</label>
@@ -389,6 +396,7 @@
   window.doRegister = async function() {
     const email = document.getElementById('regEmail').value.trim();
     const name = document.getElementById('regName').value.trim();
+    const regUnit = document.getElementById('regUnit').value;
     const pw = document.getElementById('regPassword').value;
     const pw2 = document.getElementById('regPassword2').value;
     const errEl = document.getElementById('registerErr');
@@ -396,12 +404,13 @@
     errEl.style.display = 'none'; okEl.style.display = 'none';
 
     if (!email) { showRegErr('請輸入電子郵件'); return; }
+    if (!name) { showRegErr('請輸入姓名'); return; }
     if (pw.length < 6) { showRegErr('密碼至少需要 6 位數'); return; }
     if (pw !== pw2) { showRegErr('兩次密碼不一致，請重新輸入'); return; }
 
     const { error } = await supabase.auth.signUp({
       email, password: pw,
-      options: { data: { display_name: name || email } }
+      options: { data: { display_name: name || email, unit: regUnit } }
     });
     if (error) {
       const msg = error.message.includes('already') ? '此 Email 已被註冊，請直接登入' : '註冊失敗：' + error.message;

@@ -310,11 +310,9 @@
     <div class="controls-bar">
       <input type="text" id="userSearchInput" placeholder="搜尋姓名 / Email / 單位" oninput="applyUserFilter()" />
       <select id="userRoleFilter" onchange="applyUserFilter()">
-        <option value="">全部角色</option>
-        <option value="admin">管理員</option>
-        <option value="ems">EMS</option>
-        <option value="hospital">醫院</option>
-        <option value="gov">衛生局</option>
+        <option value="">全部權限</option>
+        <option value="admin">管理者</option>
+        <option value="user">使用者(不能進管理頁面)</option>
       </select>
       <button class="btn-primary" onclick="openUserModal()">＋ 新增使用者</button>
     </div>
@@ -322,9 +320,10 @@
       <table>
         <thead>
           <tr>
-            <th>姓名 / 單位</th>
+            <th>姓名</th>
+            <th>單位</th>
             <th>Email</th>
-            <th>角色</th>
+            <th>權限</th>
             <th>狀態</th>
             <th>建立時間</th>
             <th>操作</th>
@@ -391,17 +390,21 @@
         <input id="userDisplayName" type="text" placeholder="例如：張○雄" style="width:100%;margin-top:4px;padding:10px;border:1px solid #e2e8f0;border-radius:8px;font-size:.9rem;" />
       </div>
       <div>
-        <label style="font-size:.8rem;color:#64748b;font-weight:600;">角色</label>
+        <label style="font-size:.8rem;color:#64748b;font-weight:600;">權限</label>
         <select id="userRole" style="width:100%;margin-top:4px;padding:10px;border:1px solid #e2e8f0;border-radius:8px;font-size:.9rem;">
-          <option value="ems">EMS</option>
-          <option value="hospital">醫院</option>
-          <option value="gov">衛生局</option>
-          <option value="admin">管理員</option>
+          <option value="user">使用者(不能進管理頁面)</option>
+          <option value="admin">管理者</option>
         </select>
       </div>
       <div>
         <label style="font-size:.8rem;color:#64748b;font-weight:600;">單位</label>
-        <input id="userUnit" type="text" placeholder="例如：基隆市消防局" style="width:100%;margin-top:4px;padding:10px;border:1px solid #e2e8f0;border-radius:8px;font-size:.9rem;" />
+        <select id="userUnit" style="width:100%;margin-top:4px;padding:10px;border:1px solid #e2e8f0;border-radius:8px;font-size:.9rem;">
+          <option value="">請選擇單位</option>
+          <option value="EMS">EMS</option>
+          <option value="醫院端">醫院端</option>
+          <option value="衛生所端">衛生所端</option>
+          <option value="其他">其他</option>
+        </select>
       </div>
       <div id="userModalErr" style="display:none;color:#dc2626;font-size:.85rem;padding:8px;background:#fef2f2;border-radius:6px;"></div>
     </div>
@@ -419,9 +422,7 @@
   .tab-btn:hover:not(.active) { color:#334155; background:#f8fafc; }
   .role-tag { display:inline-block; padding:2px 10px; border-radius:20px; font-size:.78rem; font-weight:600; }
   .role-admin { background:#fee2e2; color:#dc2626; }
-  .role-ems { background:#dbeafe; color:#1d4ed8; }
-  .role-hospital { background:#d1fae5; color:#065f46; }
-  .role-gov { background:#fef3c7; color:#92400e; }
+  .role-user { background:#dbeafe; color:#1d4ed8; }
   .active-badge { display:inline-block; padding:2px 10px; border-radius:20px; font-size:.78rem; font-weight:600; background:#d1fae5; color:#065f46; }
   .inactive-badge { display:inline-block; padding:2px 10px; border-radius:20px; font-size:.78rem; font-weight:600; background:#fee2e2; color:#dc2626; }
   .action-btns { display:flex; gap:6px; }
@@ -852,8 +853,8 @@
       <tr>
         <td>
           <div style="font-weight:600;color:#1e293b;">${u.display_name || '-'}</div>
-          <div style="font-size:.8rem;color:#94a3b8;">${u.unit || ''}</div>
         </td>
+        <td><div style="font-size:.9rem;color:#475569;">${u.unit || '-'}</div></td>
         <td style="color:#475569;">${u.email}</td>
         <td><span class="role-tag role-${u.role}">${roleLabel(u.role)}</span></td>
         <td>${u.is_active
@@ -872,7 +873,7 @@
   }
 
   function roleLabel(r) {
-    const map = { admin:'管理員', ems:'EMS', hospital:'醫院', gov:'衛生局' };
+    const map = { admin:'管理者', user:'使用者' };
     return map[r] || r;
   }
 
@@ -888,7 +889,7 @@
       document.getElementById('userEmail').disabled = true;
       document.getElementById('userPasswordField').style.display = 'none';
       document.getElementById('userDisplayName').value = u.display_name || '';
-      document.getElementById('userRole').value = u.role || 'ems';
+      document.getElementById('userRole').value = u.role || 'user';
       document.getElementById('userUnit').value = u.unit || '';
     } else {
       document.getElementById('userModalTitle').textContent = '新增使用者';
@@ -897,7 +898,7 @@
       document.getElementById('userPasswordField').style.display = '';
       document.getElementById('userPassword').value = '';
       document.getElementById('userDisplayName').value = '';
-      document.getElementById('userRole').value = 'ems';
+      document.getElementById('userRole').value = 'user';
       document.getElementById('userUnit').value = '';
     }
     document.getElementById('userModal').style.display = 'flex';
