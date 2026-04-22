@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8" />
@@ -331,102 +331,117 @@
   </div>
 </div>
 
-<!-- Firebase SDK -->
+<!-- Supabase SDK -->
 <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import {
-    getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged
-  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-  import {
-    getFirestore, collection, doc,
-    updateDoc, deleteDoc, writeBatch,
-    onSnapshot, query, orderBy
-  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
-  // ===== Firebase Config =====
-  const firebaseConfig = {
-    apiKey: "AIzaSyAz-X2fLMx-DpTwx5SKKa23OE2DZz1fY88",
-    authDomain: "ems-briage.firebaseapp.com",
-    projectId: "ems-briage",
-    storageBucket: "ems-briage.firebasestorage.app",
-    messagingSenderId: "945652633051",
-    appId: "1:945652633051:web:948e7542b6a6fa4330abfe"
-  };
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const db = getFirestore(app);
+  // ===== Supabase Config =====
+  const SUPABASE_URL = 'https://pqrvqwobvqjhbnvjksbb.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_KCjTHB1Wgm8P0t2TyzDsmw_3dZncrBf';
+  const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
   // ===== State =====
   let allTasks = [];
   let filteredTasks = [];
   let currentPage = 1;
   const PAGE_SIZE = 15;
-  let unsubscribe = null;
+  let realtimeChannel = null;
 
   // ===== Auth =====
   window.doLogin = async function() {
-    const email = document.getElementById("loginEmail").value.trim();
-    const password = document.getElementById("loginPassword").value;
-    const errEl = document.getElementById("loginErr");
-    errEl.style.display = "none";
-    if (!email || !password) { showLoginErr("請輸入帳號與密碼"); return; }
-    try {
-      await signInWithEmailAndPassword(auth, email, password);
-    } catch(e) {
-      const msg = e.code === "auth/invalid-credential" || e.code === "auth/wrong-password" || e.code === "auth/user-not-found"
-        ? "帳號或密碼錯誤" : "登入失敗：" + e.message;
-      showLoginErr(msg);
+    const email = document.getElementById('loginEmail').value.trim();
+    const password = document.getElementById('loginPassword').value;
+    const errEl = document.getElementById('loginErr');
+    errEl.style.display = 'none';
+    if (!email || !password) { showLoginErr('請輸入帳號與密碼'); return; }
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+      showLoginErr(error.message.includes('Invalid') ? '帳號或密碼錯誤' : '登入失敗：' + error.message);
     }
   };
 
   window.doLogout = async function() {
-    if (unsubscribe) unsubscribe();
-    await signOut(auth);
+    if (realtimeChannel) supabase.removeChannel(realtimeChannel);
+    await supabase.auth.signOut();
   };
 
   function showLoginErr(msg) {
-    const el = document.getElementById("loginErr");
-    el.textContent = msg; el.style.display = "block";
+    const el = document.getElementById('loginErr');
+    el.textContent = msg; el.style.display = 'block';
   }
 
-  onAuthStateChanged(auth, (user) => {
+  supabase.auth.onAuthStateChange(async (event, session) => {
+    const user = session?.user ?? null;
     if (user) {
-      document.getElementById("loginOverlay").style.display = "none";
-      document.getElementById("appContent").style.display = "block";
-      document.getElementById("authStatus").textContent = "✓ " + user.email;
-      subscribeToTasks();
+      document.getElementById('loginOverlay').style.display = 'none';
+      document.getElementById('appContent').style.display = 'block';
+      document.getElementById('authStatus').textContent = '✓ ' + user.email;
+      if (!realtimeChannel) subscribeToTasks();
     } else {
-      document.getElementById("loginOverlay").style.display = "flex";
-      document.getElementById("appContent").style.display = "none";
-      if (unsubscribe) { unsubscribe(); unsubscribe = null; }
+      document.getElementById('loginOverlay').style.display = 'flex';
+      document.getElementById('appContent').style.display = 'none';
+      if (realtimeChannel) { supabase.removeChannel(realtimeChannel); realtimeChannel = null; }
       allTasks = [];
     }
   });
 
-  // ===== Firestore real-time listener =====
-  function subscribeToTasks() {
-    const q = query(collection(db, "cases"), orderBy("createdAt", "desc"));
-    unsubscribe = onSnapshot(q, (snapshot) => {
-      allTasks = snapshot.docs.map(d => ({ firestoreId: d.id, ...d.data() }));
-      buildMonthFilter();
-      applyFilter();
-    }, (err) => {
-      document.getElementById("tableBody").innerHTML =
-        `<tr><td colspan="11"><div class="empty">⚠️ 無法載入：${err.message}</div></td></tr>`;
-    });
+  // ===== Supabase Realtime listener =====
+  async function subscribeToTasks() {
+    const { data, error } = await supabase
+      .from('cases').select('*').order('created_at', { ascending: false });
+    if (error) {
+      document.getElementById('tableBody').innerHTML =
+        `<tr><td colspan="11"><div class="empty">⚠️ 無法載入：${error.message}</div></td></tr>`;
+      return;
+    }
+    allTasks = (data || []).map(mapRow);
+    buildMonthFilter(); applyFilter();
+
+    realtimeChannel = supabase
+      .channel('admin-cases')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'cases' }, async () => {
+        const { data: fresh } = await supabase
+          .from('cases').select('*').order('created_at', { ascending: false });
+        allTasks = (fresh || []).map(mapRow);
+        buildMonthFilter(); applyFilter();
+      })
+      .subscribe();
+  }
+
+  function mapRow(r) {
+    return {
+      dbId: r.id,
+      id: r.case_id,
+      name: r.name,
+      birth: r.birth,
+      gender: r.gender,
+      pid: r.pid,
+      addr: r.addr,
+      time: r.transport_time,
+      transportHospital: r.transport_hospital,
+      cc: r.cc,
+      emsNote: r.ems_note,
+      hospital: {
+        diagnosis: r.hosp_diagnosis,
+        treatment: r.hosp_treatment,
+        disposition: r.hosp_disposition,
+        reporter: r.hosp_reporter,
+        updatedAt: r.hosp_updated_at
+      },
+      report: { status: r.report_status, note: r.report_note },
+      createdByEmail: r.created_by_email
+    };
   }
 
   // ===== Filters =====
   function buildMonthFilter() {
     const months = new Set();
-    allTasks.forEach(t => {
-      if (t.time) months.add(t.time.slice(0, 7));
-    });
-    const sel = document.getElementById("monthFilter");
+    allTasks.forEach(t => { if (t.time) months.add(t.time.slice(0, 7)); });
+    const sel = document.getElementById('monthFilter');
     const cur = sel.value;
     sel.innerHTML = '<option value="">全部月份</option>';
     [...months].sort().reverse().forEach(m => {
-      const opt = document.createElement("option");
+      const opt = document.createElement('option');
       opt.value = m; opt.textContent = m;
       if (m === cur) opt.selected = true;
       sel.appendChild(opt);
@@ -434,13 +449,13 @@
   }
 
   window.applyFilter = function() {
-    const q = (document.getElementById("searchInput").value || "").toLowerCase();
-    const month = document.getElementById("monthFilter").value;
-    const status = document.getElementById("statusFilter").value;
+    const q = (document.getElementById('searchInput').value || '').toLowerCase();
+    const month = document.getElementById('monthFilter').value;
+    const status = document.getElementById('statusFilter').value;
     filteredTasks = allTasks.filter(t => {
       const kw = [t.id, t.name, t.cc, formatHospital(t.transportHospital),
-        t.hospital?.diagnosis || ""].join(" ").toLowerCase().includes(q);
-      const mo = !month || (t.time || "").startsWith(month);
+        t.hospital?.diagnosis || ''].join(' ').toLowerCase().includes(q);
+      const mo = !month || (t.time || '').startsWith(month);
       const st = !status || t.report?.status === status;
       return kw && mo && st;
     });
@@ -451,204 +466,186 @@
 
   // ===== KPI =====
   function updateKPI() {
-    document.getElementById("kpiAll").textContent = allTasks.length;
-    document.getElementById("kpiPending").textContent = allTasks.filter(t => t.report?.status === "hospital").length;
-    document.getElementById("kpiProgress").textContent = allTasks.filter(t => t.report?.status === "gov").length;
-    document.getElementById("kpiClosed").textContent = allTasks.filter(t => t.report?.status === "closed").length;
+    document.getElementById('kpiAll').textContent = allTasks.length;
+    document.getElementById('kpiPending').textContent = allTasks.filter(t => t.report?.status === 'hospital').length;
+    document.getElementById('kpiProgress').textContent = allTasks.filter(t => t.report?.status === 'gov').length;
+    document.getElementById('kpiClosed').textContent = allTasks.filter(t => t.report?.status === 'closed').length;
   }
 
   // ===== Render Table =====
   function renderTable() {
     const start = (currentPage - 1) * PAGE_SIZE;
     const page = filteredTasks.slice(start, start + PAGE_SIZE);
-    const tbody = document.getElementById("tableBody");
+    const tbody = document.getElementById('tableBody');
     if (filteredTasks.length === 0) {
       tbody.innerHTML = `<tr><td colspan="11"><div class="empty">目前沒有符合條件的案件</div></td></tr>`;
-      renderPager();
-      return;
+      renderPager(); return;
     }
     tbody.innerHTML = page.map(t => `
-      <tr onclick="openDrawer('${t.firestoreId}')">
-        <td onclick="event.stopPropagation()"><input type="checkbox" class="checkbox row-check" data-fid="${t.firestoreId}" data-id="${t.id}" /></td>
+      <tr onclick="openDrawer('${t.dbId}')">
+        <td onclick="event.stopPropagation()"><input type="checkbox" class="checkbox row-check" data-fid="${t.dbId}" data-id="${t.id}" /></td>
         <td class="id-cell">${t.id}</td>
         <td>${maskName(t.name)}</td>
         <td>${formatGender(t.gender)}</td>
-        <td>${calcAge(t.birth) || "-"}</td>
-        <td>${t.cc || "-"}</td>
+        <td>${calcAge(t.birth) || '-'}</td>
+        <td>${t.cc || '-'}</td>
         <td class="hospital-cell">${formatHospital(t.transportHospital)}</td>
-        <td>${t.hospital?.diagnosis || "-"}</td>
-        <td>${t.hospital?.disposition || "-"}</td>
+        <td>${t.hospital?.diagnosis || '-'}</td>
+        <td>${t.hospital?.disposition || '-'}</td>
         <td><span class="status-badge ${statusClass(t.report?.status)}">${getStatusText(t.report?.status)}</span></td>
         <td>${formatDateTime(t.time)}</td>
       </tr>
-    `).join("");
+    `).join('');
     renderPager();
   }
 
   function renderPager() {
     const total = filteredTasks.length;
     const pages = Math.ceil(total / PAGE_SIZE);
-    document.getElementById("pagerInfo").textContent =
+    document.getElementById('pagerInfo').textContent =
       `顯示第 ${Math.min((currentPage-1)*PAGE_SIZE+1, total)} - ${Math.min(currentPage*PAGE_SIZE, total)} 筆，共 ${total} 筆`;
-    const btnContainer = document.getElementById("pagerBtns");
-    btnContainer.innerHTML = "";
+    const btnContainer = document.getElementById('pagerBtns');
+    btnContainer.innerHTML = '';
     const addBtn = (label, page, active, disabled) => {
-      const b = document.createElement("button");
-      b.className = "pager-btn" + (active ? " active" : "");
+      const b = document.createElement('button');
+      b.className = 'pager-btn' + (active ? ' active' : '');
       b.textContent = label; b.disabled = disabled;
       b.onclick = () => { currentPage = page; renderTable(); };
       btnContainer.appendChild(b);
     };
-    addBtn("‹", currentPage - 1, false, currentPage <= 1);
+    addBtn('‹', currentPage - 1, false, currentPage <= 1);
     for (let i = 1; i <= pages; i++) {
       if (i === 1 || i === pages || Math.abs(i - currentPage) <= 1) {
         addBtn(i, i, i === currentPage, false);
       } else if (Math.abs(i - currentPage) === 2) {
-        const dots = document.createElement("span");
-        dots.textContent = "…"; dots.style.cssText = "padding:0 4px;color:var(--muted);";
+        const dots = document.createElement('span');
+        dots.textContent = '…'; dots.style.cssText = 'padding:0 4px;color:var(--muted);';
         btnContainer.appendChild(dots);
       }
     }
-    addBtn("›", currentPage + 1, false, currentPage >= pages);
+    addBtn('›', currentPage + 1, false, currentPage >= pages);
   }
 
   // ===== Select All =====
   window.toggleSelectAll = function(checked) {
-    document.querySelectorAll(".row-check").forEach(c => { c.checked = checked; });
+    document.querySelectorAll('.row-check').forEach(c => { c.checked = checked; });
   };
 
   // ===== Batch Actions =====
   window.batchClose = async function() {
-    const checks = [...document.querySelectorAll(".row-check:checked")];
-    if (!checks.length) { alert("請先勾選要結案的案件"); return; }
+    const checks = [...document.querySelectorAll('.row-check:checked')];
+    if (!checks.length) { alert('請先勾選要結案的案件'); return; }
     if (!confirm(`確定要將 ${checks.length} 筆案件結案？`)) return;
-    const batch = writeBatch(db);
-    checks.forEach(c => {
-      batch.update(doc(db, "cases", c.dataset.fid), { "report.status": "closed" });
-    });
-    try { await batch.commit(); } catch(e) { alert("批次結案失敗：" + e.message); }
+    const ids = checks.map(c => c.dataset.fid);
+    const { error } = await supabase.from('cases').update({ report_status: 'closed' }).in('id', ids);
+    if (error) alert('批次結案失敗：' + error.message);
   };
 
   window.batchDelete = async function() {
-    const checks = [...document.querySelectorAll(".row-check:checked")];
-    if (!checks.length) { alert("請先勾選要刪除的案件"); return; }
+    const checks = [...document.querySelectorAll('.row-check:checked')];
+    if (!checks.length) { alert('請先勾選要刪除的案件'); return; }
     if (!confirm(`⚠️ 確定要永久刪除 ${checks.length} 筆案件？此操作無法還原！`)) return;
-    const batch = writeBatch(db);
-    checks.forEach(c => { batch.delete(doc(db, "cases", c.dataset.fid)); });
-    try { await batch.commit(); } catch(e) { alert("批次刪除失敗：" + e.message); }
+    const ids = checks.map(c => c.dataset.fid);
+    const { error } = await supabase.from('cases').delete().in('id', ids);
+    if (error) alert('批次刪除失敗：' + error.message);
   };
 
   // ===== Drawer =====
-  window.openDrawer = function(firestoreId) {
-    const t = allTasks.find(x => x.firestoreId === firestoreId);
+  window.openDrawer = function(dbId) {
+    const t = allTasks.find(x => x.dbId === dbId);
     if (!t) return;
-    const content = document.getElementById("drawerContent");
-    content.innerHTML = `
+    document.getElementById('drawerContent').innerHTML = `
       <div class="drawer-title">${t.id}</div>
-      <div class="drawer-sub">${getStatusText(t.report?.status)} ｜ 建立者：${t.createdByEmail || "-"}</div>
+      <div class="drawer-sub">${getStatusText(t.report?.status)} ｜ 建立者：${t.createdByEmail || '-'}</div>
       <div class="d-section">
         <h4>EMS 院前資訊</h4>
         <div class="d-row"><div class="d-label">病患姓名</div><div class="d-val">${maskName(t.name)}</div></div>
-        <div class="d-row"><div class="d-label">出生日期</div><div class="d-val">${t.birth || "-"}</div></div>
+        <div class="d-row"><div class="d-label">出生日期</div><div class="d-val">${t.birth || '-'}</div></div>
         <div class="d-row"><div class="d-label">性別</div><div class="d-val">${formatGender(t.gender)}</div></div>
-        <div class="d-row"><div class="d-label">身分證號</div><div class="d-val">${t.pid ? maskPID(t.pid) : "-"}</div></div>
-        <div class="d-row"><div class="d-label">地址</div><div class="d-val">${t.addr || "-"}</div></div>
-        <div class="d-row"><div class="d-label">主訴</div><div class="d-val">${t.cc || "-"}</div></div>
+        <div class="d-row"><div class="d-label">身分證號</div><div class="d-val">${t.pid ? maskPID(t.pid) : '-'}</div></div>
+        <div class="d-row"><div class="d-label">地址</div><div class="d-val">${t.addr || '-'}</div></div>
+        <div class="d-row"><div class="d-label">主訴</div><div class="d-val">${t.cc || '-'}</div></div>
         <div class="d-row"><div class="d-label">後送醫院</div><div class="d-val">${formatHospital(t.transportHospital)}</div></div>
         <div class="d-row"><div class="d-label">通報時間</div><div class="d-val">${formatDateTime(t.time)}</div></div>
-        <div class="d-row"><div class="d-label">EMS 補充</div><div class="d-val" style="line-height:1.6;">${t.emsNote || "無"}</div></div>
+        <div class="d-row"><div class="d-label">EMS 補充</div><div class="d-val" style="line-height:1.6;">${t.emsNote || '無'}</div></div>
       </div>
       <div class="d-section">
         <h4>醫院端回報</h4>
-        <div class="d-row"><div class="d-label">診斷</div><div class="d-val">${t.hospital?.diagnosis || "未回報"}</div></div>
-        <div class="d-row"><div class="d-label">治療</div><div class="d-val">${t.hospital?.treatment || "未回報"}</div></div>
-        <div class="d-row"><div class="d-label">動向</div><div class="d-val">${t.hospital?.disposition || "未回報"}</div></div>
-        <div class="d-row"><div class="d-label">回報者</div><div class="d-val">${t.hospital?.reporter || "-"}</div></div>
-        <div class="d-row"><div class="d-label">更新時間</div><div class="d-val">${t.hospital?.updatedAt || "-"}</div></div>
+        <div class="d-row"><div class="d-label">診斷</div><div class="d-val">${t.hospital?.diagnosis || '未回報'}</div></div>
+        <div class="d-row"><div class="d-label">治療</div><div class="d-val">${t.hospital?.treatment || '未回報'}</div></div>
+        <div class="d-row"><div class="d-label">動向</div><div class="d-val">${t.hospital?.disposition || '未回報'}</div></div>
+        <div class="d-row"><div class="d-label">回報者</div><div class="d-val">${t.hospital?.reporter || '-'}</div></div>
+        <div class="d-row"><div class="d-label">更新時間</div><div class="d-val">${t.hospital?.updatedAt || '-'}</div></div>
       </div>
       <div class="d-section">
         <h4>衛生局回報</h4>
         <div class="d-row"><div class="d-label">狀態</div><div class="d-val">${getStatusText(t.report?.status)}</div></div>
-        <div class="d-row"><div class="d-label">回報內容</div><div class="d-val">${t.report?.note || "未填寫"}</div></div>
+        <div class="d-row"><div class="d-label">回報內容</div><div class="d-val">${t.report?.note || '未填寫'}</div></div>
       </div>
       <div class="d-btn-row">
-        <button class="btn-warning" onclick="closeSingleCase('${t.firestoreId}')">結案</button>
-        <button class="btn-danger" onclick="deleteSingleCase('${t.firestoreId}')">刪除</button>
+        <button class="btn-warning" onclick="closeSingleCase('${t.dbId}')">結案</button>
+        <button class="btn-danger" onclick="deleteSingleCase('${t.dbId}')">刪除</button>
       </div>
     `;
-    document.getElementById("drawerOverlay").style.display = "block";
-    document.getElementById("drawer").classList.add("open");
+    document.getElementById('drawerOverlay').style.display = 'block';
+    document.getElementById('drawer').classList.add('open');
   };
 
   window.closeDrawer = function() {
-    document.getElementById("drawerOverlay").style.display = "none";
-    document.getElementById("drawer").classList.remove("open");
+    document.getElementById('drawerOverlay').style.display = 'none';
+    document.getElementById('drawer').classList.remove('open');
   };
 
-  window.closeSingleCase = async function(firestoreId) {
-    if (!confirm("確定要結案此案件？")) return;
-    try {
-      await updateDoc(doc(db, "cases", firestoreId), { "report.status": "closed" });
-      closeDrawer();
-    } catch(e) { alert("結案失敗：" + e.message); }
+  window.closeSingleCase = async function(dbId) {
+    if (!confirm('確定要結案此案件？')) return;
+    const { error } = await supabase.from('cases').update({ report_status: 'closed' }).eq('id', dbId);
+    if (error) { alert('結案失敗：' + error.message); } else { closeDrawer(); }
   };
 
-  window.deleteSingleCase = async function(firestoreId) {
-    if (!confirm("⚠️ 確定要永久刪除此案件？")) return;
-    try {
-      await deleteDoc(doc(db, "cases", firestoreId));
-      closeDrawer();
-    } catch(e) { alert("刪除失敗：" + e.message); }
+  window.deleteSingleCase = async function(dbId) {
+    if (!confirm('⚠️ 確定要永久刪除此案件？')) return;
+    const { error } = await supabase.from('cases').delete().eq('id', dbId);
+    if (error) { alert('刪除失敗：' + error.message); } else { closeDrawer(); }
   };
 
   // ===== Export Modal =====
-  window.openExportModal = function() {
-    document.getElementById("exportModal").style.display = "flex";
-  };
-  window.closeExportModal = function() {
-    document.getElementById("exportModal").style.display = "none";
-  };
+  window.openExportModal = function() { document.getElementById('exportModal').style.display = 'flex'; };
+  window.closeExportModal = function() { document.getElementById('exportModal').style.display = 'none'; };
 
   window.doExportCSV = function() {
     const fields = [
-      { id:"exp-id",      key:"id",               label:"案件編號" },
-      { id:"exp-name",    key:"name",              label:"姓名" },
-      { id:"exp-gender",  key:"gender",            label:"性別" },
-      { id:"exp-birth",   key:"birth",             label:"出生日期" },
-      { id:"exp-pid",     key:"pid",               label:"身分證號" },
-      { id:"exp-addr",    key:"addr",              label:"地址" },
-      { id:"exp-time",    key:"time",              label:"通報時間" },
-      { id:"exp-cc",      key:"cc",                label:"主訴" },
-      { id:"exp-hospital",key:"transportHospital", label:"後送醫院" },
-      { id:"exp-diag",    key:"hospital.diagnosis",label:"診斷" },
-      { id:"exp-treat",   key:"hospital.treatment",label:"治療" },
-      { id:"exp-disp",    key:"hospital.disposition",label:"醫療動向" },
-      { id:"exp-status",  key:"report.status",     label:"狀態" },
-      { id:"exp-note",    key:"report.note",       label:"衛生局回報" },
+      { id:'exp-id',      key:'id',               label:'案件編號' },
+      { id:'exp-name',    key:'name',              label:'姓名' },
+      { id:'exp-gender',  key:'gender',            label:'性別' },
+      { id:'exp-birth',   key:'birth',             label:'出生日期' },
+      { id:'exp-pid',     key:'pid',               label:'身分證號' },
+      { id:'exp-addr',    key:'addr',              label:'地址' },
+      { id:'exp-time',    key:'time',              label:'通報時間' },
+      { id:'exp-cc',      key:'cc',                label:'主訴' },
+      { id:'exp-hospital',key:'transportHospital', label:'後送醫院' },
+      { id:'exp-diag',    key:'hospital.diagnosis',label:'診斷' },
+      { id:'exp-treat',   key:'hospital.treatment',label:'治療' },
+      { id:'exp-disp',    key:'hospital.disposition',label:'醫療動向' },
+      { id:'exp-status',  key:'report.status',     label:'狀態' },
+      { id:'exp-note',    key:'report.note',       label:'衛生局回報' },
     ].filter(f => document.getElementById(f.id)?.checked);
 
-    if (!fields.length) { alert("請至少選擇一個欄位"); return; }
-
-    const getNestedVal = (obj, path) => {
-      return path.split(".").reduce((o, k) => (o && o[k] !== undefined ? o[k] : ""), obj);
-    };
-
-    const rows = [fields.map(f => f.label).join(",")];
+    if (!fields.length) { alert('請至少選擇一個欄位'); return; }
+    const getVal = (obj, path) => path.split('.').reduce((o, k) => (o && o[k] !== undefined ? o[k] : ''), obj);
+    const rows = [fields.map(f => f.label).join(',')];
     filteredTasks.forEach(t => {
       rows.push(fields.map(f => {
-        let v = getNestedVal(t, f.key);
-        if (f.key === "gender") v = formatGender(v);
-        if (f.key === "transportHospital") v = formatHospital(v);
-        if (f.key === "report.status") v = getStatusText(v);
-        v = String(v || "").replace(/"/g, '""');
+        let v = getVal(t, f.key);
+        if (f.key === 'gender') v = formatGender(v);
+        if (f.key === 'transportHospital') v = formatHospital(v);
+        if (f.key === 'report.status') v = getStatusText(v);
+        v = String(v || '').replace(/"/g, '""');
         return `"${v}"`;
-      }).join(","));
+      }).join(','));
     });
-
-    const bom = "\uFEFF";
-    const blob = new Blob([bom + rows.join("\n")], { type:"text/csv;charset=utf-8;" });
+    const blob = new Blob(['\uFEFF' + rows.join('\n')], { type:'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
+    const a = document.createElement('a');
     a.href = url; a.download = `EMS_Bridge_${new Date().toISOString().slice(0,10)}.csv`;
     a.click(); URL.revokeObjectURL(url);
     closeExportModal();
@@ -656,39 +653,39 @@
 
   // ===== Helpers =====
   function maskName(name) {
-    if (!name) return "";
-    if (name.length === 1) return name + "○";
-    return name[0] + "○" + name.slice(-1);
+    if (!name) return '';
+    if (name.length === 1) return name + '○';
+    return name[0] + '○' + name.slice(-1);
   }
   function maskPID(pid) {
-    if (!pid) return "-";
+    if (!pid) return '-';
     if (pid.length < 6) return pid;
-    return pid[0] + "****" + pid.slice(-4);
+    return pid[0] + '****' + pid.slice(-4);
   }
   function formatGender(g) {
-    if (g === "M" || g === "男") return "男";
-    if (g === "F" || g === "女") return "女";
-    return "-";
+    if (g === 'M' || g === '男') return '男';
+    if (g === 'F' || g === '女') return '女';
+    return '-';
   }
   function formatHospital(code) {
-    const map = { H01:"萬芳醫院",H02:"基隆長庚",H03:"礦工醫院",H04:"汐止國泰",H05:"部立基隆",H06:"內湖三總",H07:"瑞芳醫院",H08:"台大醫院" };
-    return map[code] || code || "-";
+    const map = { H01:'萬芳醫院',H02:'基隆長庚',H03:'礦工醫院',H04:'汐止國泰',H05:'部立基隆',H06:'內湖三總',H07:'瑞芳醫院',H08:'台大醫院' };
+    return map[code] || code || '-';
   }
-  function formatDateTime(v) { return v ? String(v).replace("T"," ") : "-"; }
+  function formatDateTime(v) { return v ? String(v).replace('T',' ') : '-'; }
   function getStatusText(st) {
-    if (st === "hospital") return "待醫院回報";
-    if (st === "gov") return "待衛生局回報";
-    if (st === "closed") return "已結案";
-    return "-";
+    if (st === 'hospital') return '待醫院回報';
+    if (st === 'gov') return '待衛生局回報';
+    if (st === 'closed') return '已結案';
+    return '-';
   }
   function statusClass(st) {
-    if (st === "hospital") return "status-pending";
-    if (st === "gov") return "status-progress";
-    if (st === "closed") return "status-closed";
-    return "status-pending";
+    if (st === 'hospital') return 'status-pending';
+    if (st === 'gov') return 'status-progress';
+    if (st === 'closed') return 'status-closed';
+    return 'status-pending';
   }
   function calcAge(birth) {
-    if (!birth) return "";
+    if (!birth) return '';
     const today = new Date(); const b = new Date(birth);
     let age = today.getFullYear() - b.getFullYear();
     if (today.getMonth() < b.getMonth() || (today.getMonth() === b.getMonth() && today.getDate() < b.getDate())) age--;

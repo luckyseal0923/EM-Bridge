@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8" />
@@ -335,37 +335,19 @@
   </div>
 </div>
 
-<!-- Firebase SDK -->
+<!-- Supabase SDK -->
 <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import {
-    getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword,
-    updateProfile, signOut, onAuthStateChanged
-  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-  import {
-    getFirestore, collection, doc,
-    addDoc, updateDoc,
-    onSnapshot, serverTimestamp, query, orderBy
-  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
-  // ===== Firebase Config =====
-  const firebaseConfig = {
-    apiKey: "AIzaSyAz-X2fLMx-DpTwx5SKKa23OE2DZz1fY88",
-    authDomain: "ems-briage.firebaseapp.com",
-    projectId: "ems-briage",
-    storageBucket: "ems-briage.firebasestorage.app",
-    messagingSenderId: "945652633051",
-    appId: "1:945652633051:web:948e7542b6a6fa4330abfe"
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const db = getFirestore(app);
+  // ===== Supabase Config =====
+  const SUPABASE_URL = 'https://pqrvqwobvqjhbnvjksbb.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_KCjTHB1Wgm8P0t2TyzDsmw_3dZncrBf';
+  const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
   // ===== State =====
   let allTasks = [];
   let currentUser = null;
-  let unsubscribe = null;
+  let realtimeChannel = null;
 
   // ===== Auth =====
   window.doLogin = async function() {
@@ -385,246 +367,248 @@
 
   window.doLogout = async function() {
     if (unsubscribe) unsubscribe();
-    await signOut(auth);
+    await supabase.auth.signOut();
   };
 
   window.goAdmin = function() {
-    window.location.href = "admin.html";
+    window.location.href = 'admin.html';
   };
 
   // ===== Register =====
   window.doRegister = async function() {
-    const email = document.getElementById("regEmail").value.trim();
-    const name = document.getElementById("regName").value.trim();
-    const pw = document.getElementById("regPassword").value;
-    const pw2 = document.getElementById("regPassword2").value;
-    const errEl = document.getElementById("registerErr");
-    const okEl = document.getElementById("registerOk");
-    errEl.style.display = "none"; okEl.style.display = "none";
+    const email = document.getElementById('regEmail').value.trim();
+    const name = document.getElementById('regName').value.trim();
+    const pw = document.getElementById('regPassword').value;
+    const pw2 = document.getElementById('regPassword2').value;
+    const errEl = document.getElementById('registerErr');
+    const okEl = document.getElementById('registerOk');
+    errEl.style.display = 'none'; okEl.style.display = 'none';
 
-    if (!email) { showRegErr("請輸入電子郵件"); return; }
-    if (pw.length < 6) { showRegErr("密碼至少需要 6 位數"); return; }
-    if (pw !== pw2) { showRegErr("兩次密碼不一致，請重新輸入"); return; }
+    if (!email) { showRegErr('請輸入電子郵件'); return; }
+    if (pw.length < 6) { showRegErr('密碼至少需要 6 位數'); return; }
+    if (pw !== pw2) { showRegErr('兩次密碼不一致，請重新輸入'); return; }
 
-    try {
-      const cred = await createUserWithEmailAndPassword(auth, email, pw);
-      if (name) await updateProfile(cred.user, { displayName: name });
-      okEl.textContent = "✓ 帳號建立成功，正在登入…";
-      okEl.style.display = "block";
-      // auth state change will handle redirect
-    } catch(e) {
-      const msg = e.code === "auth/email-already-in-use" ? "此 Email 已被註冊，請直接登入"
-        : e.code === "auth/invalid-email" ? "Email 格式不正確"
-        : "註冊失敗：" + e.message;
+    const { error } = await supabase.auth.signUp({
+      email, password: pw,
+      options: { data: { display_name: name } }
+    });
+    if (error) {
+      const msg = error.message.includes('already') ? '此 Email 已被註冊，請直接登入' : '註冊失敗：' + error.message;
       showRegErr(msg);
+    } else {
+      okEl.textContent = '✓ 帳號建立成功，正在登入…';
+      okEl.style.display = 'block';
     }
   };
 
   window.switchAuthTab = function(tab) {
-    document.getElementById("tab-login").classList.toggle("active", tab === "login");
-    document.getElementById("tab-register").classList.toggle("active", tab === "register");
-    document.getElementById("panel-login").classList.toggle("active", tab === "login");
-    document.getElementById("panel-register").classList.toggle("active", tab === "register");
-    document.getElementById("loginErr").style.display = "none";
-    document.getElementById("registerErr").style.display = "none";
-    document.getElementById("registerOk").style.display = "none";
+    document.getElementById('tab-login').classList.toggle('active', tab === 'login');
+    document.getElementById('tab-register').classList.toggle('active', tab === 'register');
+    document.getElementById('panel-login').classList.toggle('active', tab === 'login');
+    document.getElementById('panel-register').classList.toggle('active', tab === 'register');
+    document.getElementById('loginErr').style.display = 'none';
+    document.getElementById('registerErr').style.display = 'none';
+    document.getElementById('registerOk').style.display = 'none';
   };
 
   function showLoginErr(msg) {
-    const el = document.getElementById("loginErr");
-    el.textContent = msg;
-    el.style.display = "block";
+    const el = document.getElementById('loginErr');
+    el.textContent = msg; el.style.display = 'block';
   }
-
   function showRegErr(msg) {
-    const el = document.getElementById("registerErr");
-    el.textContent = msg;
-    el.style.display = "block";
+    const el = document.getElementById('registerErr');
+    el.textContent = msg; el.style.display = 'block';
   }
 
-  onAuthStateChanged(auth, (user) => {
-    currentUser = user;
-    if (user) {
-      document.getElementById("loginOverlay").style.display = "none";
-      document.getElementById("appContent").style.display = "block";
-      document.getElementById("authStatus").textContent = "✓ " + user.email;
-      subscribeToTasks();
+  // ===== Auth State Listener =====
+  supabase.auth.onAuthStateChange(async (event, session) => {
+    currentUser = session?.user ?? null;
+    if (currentUser) {
+      document.getElementById('loginOverlay').style.display = 'none';
+      document.getElementById('appContent').style.display = 'block';
+      document.getElementById('authStatus').textContent = '✓ ' + currentUser.email;
+      if (!realtimeChannel) subscribeToTasks();
     } else {
-      document.getElementById("loginOverlay").style.display = "flex";
-      document.getElementById("appContent").style.display = "none";
-      if (unsubscribe) { unsubscribe(); unsubscribe = null; }
+      document.getElementById('loginOverlay').style.display = 'flex';
+      document.getElementById('appContent').style.display = 'none';
+      if (realtimeChannel) { supabase.removeChannel(realtimeChannel); realtimeChannel = null; }
       allTasks = [];
     }
   });
 
-  // ===== Firestore real-time listener =====
-  function subscribeToTasks() {
-    const q = query(collection(db, "cases"), orderBy("createdAt", "desc"));
-    unsubscribe = onSnapshot(q, (snapshot) => {
-      allTasks = snapshot.docs.map(d => ({ firestoreId: d.id, ...d.data() }));
-      render();
-    }, (err) => {
-      console.error("Firestore error:", err);
-      document.getElementById("list").innerHTML =
-        `<div class="empty">⚠️ 無法載入資料：${err.message}</div>`;
-    });
+  // ===== Supabase Realtime listener =====
+  async function subscribeToTasks() {
+    const { data, error } = await supabase
+      .from('cases').select('*').order('created_at', { ascending: false });
+    if (error) {
+      document.getElementById('list').innerHTML = `<div class="empty">⚠️ 無法載入資料：${error.message}</div>`;
+      return;
+    }
+    allTasks = (data || []).map(mapRow);
+    render();
+
+    realtimeChannel = supabase
+      .channel('cases-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'cases' }, async () => {
+        const { data: fresh } = await supabase
+          .from('cases').select('*').order('created_at', { ascending: false });
+        allTasks = (fresh || []).map(mapRow);
+        render();
+      })
+      .subscribe();
+  }
+
+  function mapRow(r) {
+    return {
+      dbId: r.id,
+      id: r.case_id,
+      name: r.name,
+      birth: r.birth,
+      gender: r.gender,
+      pid: r.pid,
+      addr: r.addr,
+      time: r.transport_time,
+      transportHospitalCode: r.transport_hospital_code,
+      transportHospital: r.transport_hospital,
+      cc: r.cc,
+      emsNote: r.ems_note,
+      hospital: {
+        diagnosis: r.hosp_diagnosis,
+        treatment: r.hosp_treatment,
+        disposition: r.hosp_disposition,
+        reporter: r.hosp_reporter,
+        updatedAt: r.hosp_updated_at
+      },
+      report: { status: r.report_status, note: r.report_note },
+      createdByEmail: r.created_by_email
+    };
   }
 
   // ===== Create Case =====
   window.createCase = async function() {
-    if (!currentUser) { alert("請先登入"); return; }
-    const name = document.getElementById("name").value.trim();
-    const birth = document.getElementById("birth").value.trim();
-    const gender = document.getElementById("gender").value;
-    const pid = document.getElementById("pid").value.trim();
-    const hospitalCode = document.getElementById("hospital").value;
-    const hospitalOther = document.getElementById("hospitalOther").value.trim();
-    const addr = document.getElementById("addr").value.trim();
-    const time = document.getElementById("time").value.trim();
-    const cc = document.getElementById("cc").value.trim();
-    const emsNote = document.getElementById("emsNote").value.trim();
+    if (!currentUser) { alert('請先登入'); return; }
+    const name = document.getElementById('name').value.trim();
+    const birth = document.getElementById('birth').value.trim();
+    const gender = document.getElementById('gender').value;
+    const pid = document.getElementById('pid').value.trim();
+    const hospitalCode = document.getElementById('hospital').value;
+    const hospitalOther = document.getElementById('hospitalOther').value.trim();
+    const addr = document.getElementById('addr').value.trim();
+    const time = document.getElementById('time').value.trim();
+    const cc = document.getElementById('cc').value.trim();
+    const emsNote = document.getElementById('emsNote').value.trim();
 
     if (birth) {
       const age = calcAge(birth);
-      if (age < 0 || age > 120) { alert("⚠️ 出生年月日異常"); return; }
+      if (age < 0 || age > 120) { alert('⚠️ 出生年月日異常'); return; }
     }
 
-    const btn = document.getElementById("createBtn");
-    btn.disabled = true; btn.textContent = "建立中…";
+    const btn = document.getElementById('createBtn');
+    btn.disabled = true; btn.textContent = '建立中…';
 
-    try {
-      const payload = {
-        id: makeId(),
-        name: name || "未填姓名",
-        birth: birth || "",
-        gender: gender || "",
-        pid: pid || "",
-        transportHospitalCode: hospitalCode || "",
-        transportHospital: hospitalCode === "HA1" ? hospitalOther : hospitalCode,
-        addr: addr || "未填地址",
-        time: time || "",
-        cc: cc || "未填主訴",
-        emsNote: emsNote || "",
-        hospital: { diagnosis:"", treatment:"", disposition:"", reporter:"", updatedAt:"" },
-        report: { status:"hospital", note:"" },
-        createdBy: currentUser.uid,
-        createdByEmail: currentUser.email,
-        createdAt: serverTimestamp()
-      };
-      await addDoc(collection(db, "cases"), payload);
-      // Clear form
-      ["name","birth","pid","addr","time","cc","emsNote"].forEach(id => document.getElementById(id).value = "");
-      document.getElementById("gender").value = "";
-      document.getElementById("hospital").value = "";
-      document.getElementById("hospitalOther").style.display = "none";
-    } catch(e) {
-      alert("建立案件失敗：" + e.message);
-    } finally {
-      btn.disabled = false; btn.textContent = "建立案件";
+    const { error } = await supabase.from('cases').insert({
+      case_id: makeId(),
+      name: name || '未填姓名',
+      birth: birth || null,
+      gender: gender || '',
+      pid: pid || '',
+      transport_hospital_code: hospitalCode || '',
+      transport_hospital: hospitalCode === 'HA1' ? hospitalOther : hospitalCode,
+      addr: addr || '未填地址',
+      transport_time: time || '',
+      cc: cc || '未填主訴',
+      ems_note: emsNote || '',
+      report_status: 'hospital',
+      report_note: '',
+      created_by: currentUser.id,
+      created_by_email: currentUser.email
+    });
+
+    if (error) {
+      alert('建立案件失敗：' + error.message);
+    } else {
+      ['name','birth','pid','addr','time','cc','emsNote'].forEach(id => document.getElementById(id).value = '');
+      document.getElementById('gender').value = '';
+      document.getElementById('hospital').value = '';
+      document.getElementById('hospitalOther').style.display = 'none';
     }
+    btn.disabled = false; btn.textContent = '建立案件';
   };
 
   // ===== Save Hospital Report =====
-  window.saveHospital = async function(firestoreId, caseId) {
-    const diagnosis = document.getElementById("diag-" + caseId).value.trim();
-    const treatment = document.getElementById("treat-" + caseId).value.trim();
-    const disposition = document.getElementById("disp-" + caseId).value;
-    const reporter = document.getElementById("reporter-" + caseId).value.trim();
-    const newStatus = (diagnosis || treatment || disposition) ? "gov" : "hospital";
-
-    try {
-      await updateDoc(doc(db, "cases", firestoreId), {
-        "hospital.diagnosis": diagnosis,
-        "hospital.treatment": treatment,
-        "hospital.disposition": disposition,
-        "hospital.reporter": reporter,
-        "hospital.updatedAt": getNowText(),
-        "report.status": newStatus
-      });
-    } catch(e) {
-      alert("儲存失敗：" + e.message);
-    }
+  window.saveHospital = async function(dbId, caseId) {
+    const diagnosis = document.getElementById('diag-' + caseId).value.trim();
+    const treatment = document.getElementById('treat-' + caseId).value.trim();
+    const disposition = document.getElementById('disp-' + caseId).value;
+    const reporter = document.getElementById('reporter-' + caseId).value.trim();
+    const newStatus = (diagnosis || treatment || disposition) ? 'gov' : 'hospital';
+    const { error } = await supabase.from('cases').update({
+      hosp_diagnosis: diagnosis, hosp_treatment: treatment,
+      hosp_disposition: disposition, hosp_reporter: reporter,
+      hosp_updated_at: getNowText(), report_status: newStatus
+    }).eq('id', dbId);
+    if (error) alert('儲存失敗：' + error.message);
   };
 
   // ===== Save Gov Report =====
-  window.saveGov = async function(firestoreId, caseId) {
-    const note = document.getElementById("gov-" + caseId).value.trim();
-    try {
-      await updateDoc(doc(db, "cases", firestoreId), {
-        "report.note": note,
-        "report.status": "closed"
-      });
-    } catch(e) {
-      alert("儲存失敗：" + e.message);
-    }
+  window.saveGov = async function(dbId, caseId) {
+    const note = document.getElementById('gov-' + caseId).value.trim();
+    const { error } = await supabase.from('cases').update({
+      report_note: note, report_status: 'closed'
+    }).eq('id', dbId);
+    if (error) alert('儲存失敗：' + error.message);
   };
 
   // ===== Toggle Case =====
   window.toggleCase = function(caseId) {
-    const el = document.getElementById("body-" + caseId);
+    const el = document.getElementById('body-' + caseId);
     if (!el) return;
     const head = el.previousElementSibling;
-    const isOpen = el.style.display === "block";
-    el.style.display = isOpen ? "none" : "block";
-    if (!isOpen) { head.classList.add("active"); } else { head.classList.remove("active"); }
+    const isOpen = el.style.display === 'block';
+    el.style.display = isOpen ? 'none' : 'block';
+    if (!isOpen) { head.classList.add('active'); } else { head.classList.remove('active'); }
   };
 
   // ===== Toggle Other Hospital =====
   window.toggleOtherHospital = function() {
-    const val = document.getElementById("hospital").value;
-    const other = document.getElementById("hospitalOther");
-    other.style.display = val === "HA1" ? "block" : "none";
-    if (val !== "HA1") other.value = "";
+    const val = document.getElementById('hospital').value;
+    const other = document.getElementById('hospitalOther');
+    other.style.display = val === 'HA1' ? 'block' : 'none';
+    if (val !== 'HA1') other.value = '';
   };
 
   // ===== Render =====
   window.render = function() {
-    const q = (document.getElementById("searchInput")?.value || "").trim().toLowerCase();
-    const statusFilter = document.getElementById("statusFilter")?.value || "";
-
+    const q = (document.getElementById('searchInput')?.value || '').trim().toLowerCase();
+    const statusFilter = document.getElementById('statusFilter')?.value || '';
     let tasks = [...allTasks].filter(t => {
       const keywordHit = [t.id, t.name, t.cc, t.addr,
-        t.hospital?.diagnosis || "", t.hospital?.reporter || ""]
-        .join(" ").toLowerCase().includes(q);
+        t.hospital?.diagnosis || '', t.hospital?.reporter || '']
+        .join(' ').toLowerCase().includes(q);
       const statusHit = !statusFilter || t.report?.status === statusFilter;
       return keywordHit && statusHit;
     });
-
     updateKPI();
-
-    const list = document.getElementById("list");
+    const list = document.getElementById('list');
     if (!list) return;
-
     if (tasks.length === 0) {
       list.innerHTML = `<div class="empty">目前沒有符合條件的案件</div>`;
       return;
     }
-
     list.innerHTML = tasks.map(t => `
       <div class="case-item">
         <div class="case-head" onclick="toggleCase('${t.id}')">
           <div class="case-head-top">
             <div>
-              <div class="case-id-wrap">
-                <div class="case-id">${t.id}</div>
-              </div>
-              <div class="subtext" style="margin-top:6px;">${formatDateTime(t.time) || "未填時間"}</div>
+              <div class="case-id-wrap"><div class="case-id">${t.id}</div></div>
+              <div class="subtext" style="margin-top:6px;">${formatDateTime(t.time) || '未填時間'}</div>
             </div>
             <span class="status-badge ${statusClass(t.report?.status)}">${getStatusText(t.report?.status)}</span>
           </div>
           <div class="case-summary">
-            <div class="summary-box">
-              <div class="label">病人</div>
-              <div class="value">${maskName(t.name)}｜${formatGender(t.gender)}｜${calcAge(t.birth) || "-"} 歲</div>
-            </div>
-            <div class="summary-box">
-              <div class="label">主訴</div>
-              <div class="value">${t.cc || "-"}</div>
-            </div>
-            <div class="summary-box">
-              <div class="label">後送醫院</div>
-              <div class="value">${formatHospital(t.transportHospital)}</div>
-            </div>
+            <div class="summary-box"><div class="label">病人</div><div class="value">${maskName(t.name)}｜${formatGender(t.gender)}｜${calcAge(t.birth) || '-'} 歲</div></div>
+            <div class="summary-box"><div class="label">主訴</div><div class="value">${t.cc || '-'}</div></div>
+            <div class="summary-box"><div class="label">後送醫院</div><div class="value">${formatHospital(t.transportHospital)}</div></div>
           </div>
         </div>
         <div class="case-body" id="body-${t.id}">
@@ -638,126 +622,100 @@
           </div>
           <div class="case-body-grid">
             <div class="panel" style="grid-column:1 / -1;">
-              <div class="panel-title">
-                <h3>院前資訊（EMS）</h3>
-                <span class="role-badge role-ems">EMS</span>
-              </div>
+              <div class="panel-title"><h3>院前資訊（EMS）</h3><span class="role-badge role-ems">EMS</span></div>
               <div class="info-list">
-                <div class="info-item">
-                  <div class="label">基本資訊</div>
-                  <div class="value">${t.birth || "-"} ｜ ${formatGender(t.gender)} ｜ ${t.pid ? maskPID(t.pid) : "-"}</div>
-                </div>
-                <div class="info-item">
-                  <div class="label">地址 / 里別</div>
-                  <div class="value">${t.addr || "-"}</div>
-                </div>
-                <div class="info-item">
-                  <div class="label">EMS 現場補充</div>
-                  <div class="value ems-note">${t.emsNote || "無"}</div>
-                </div>
+                <div class="info-item"><div class="label">基本資訊</div><div class="value">${t.birth || '-'} ｜ ${formatGender(t.gender)} ｜ ${t.pid ? maskPID(t.pid) : '-'}</div></div>
+                <div class="info-item"><div class="label">地址 / 里別</div><div class="value">${t.addr || '-'}</div></div>
+                <div class="info-item"><div class="label">EMS 現場補充</div><div class="value ems-note">${t.emsNote || '無'}</div></div>
               </div>
             </div>
             <div class="panel">
-              <div class="panel-title">
-                <h3>醫院端回報</h3>
-                <span class="role-badge role-hospital">醫院</span>
-              </div>
+              <div class="panel-title"><h3>醫院端回報</h3><span class="role-badge role-hospital">醫院</span></div>
               <label>初步診斷 / 問題摘要</label>
-              <input id="diag-${t.id}" value="${escapeHtml(t.hospital?.diagnosis || "")}" placeholder="例如：肺炎、頭部外傷、低血糖" />
-              <textarea id="treat-${t.id}" placeholder="例如：已完成抽血、影像檢查、藥物治療與後續處置">${escapeHtml(t.hospital?.treatment || "")}</textarea>
+              <input id="diag-${t.id}" value="${escapeHtml(t.hospital?.diagnosis || '')}" placeholder="例如：肺炎、頭部外傷、低血糖" />
+              <textarea id="treat-${t.id}" placeholder="例如：已完成抽血、影像檢查、藥物治療與後續處置">${escapeHtml(t.hospital?.treatment || '')}</textarea>
               <select id="disp-${t.id}">
-                <option value="" ${!t.hospital?.disposition ? "selected" : ""}>請選擇醫療端動向</option>
-                <option value="急診留觀" ${t.hospital?.disposition === "急診留觀" ? "selected" : ""}>急診留觀</option>
-                <option value="辦理住院" ${t.hospital?.disposition === "辦理住院" ? "selected" : ""}>辦理住院</option>
-                <option value="轉至他院" ${t.hospital?.disposition === "轉至他院" ? "selected" : ""}>轉至他院</option>
-                <option value="轉至HAH" ${t.hospital?.disposition === "轉至HAH" ? "selected" : ""}>轉至HAH</option>
-                <option value="出院返家" ${t.hospital?.disposition === "出院返家" ? "selected" : ""}>出院返家</option>
+                <option value="" ${!t.hospital?.disposition ? 'selected' : ''}>請選擇醫療端動向</option>
+                <option value="急診留觀" ${t.hospital?.disposition === '急診留觀' ? 'selected' : ''}>急診留觀</option>
+                <option value="辦理住院" ${t.hospital?.disposition === '辦理住院' ? 'selected' : ''}>辦理住院</option>
+                <option value="轉至他院" ${t.hospital?.disposition === '轉至他院' ? 'selected' : ''}>轉至他院</option>
+                <option value="轉至HAH" ${t.hospital?.disposition === '轉至HAH' ? 'selected' : ''}>轉至HAH</option>
+                <option value="出院返家" ${t.hospital?.disposition === '出院返家' ? 'selected' : ''}>出院返家</option>
               </select>
-              <input id="reporter-${t.id}" value="${escapeHtml(t.hospital?.reporter || "")}" placeholder="例如：急診醫師、急診護理師" />
-              <div class="small">最後更新：${t.hospital?.updatedAt || "尚未填寫醫療端回報"}</div>
-              <div class="action-row">
-                <button class="btn" onclick="saveHospital('${t.firestoreId}', '${t.id}')">儲存醫院回報</button>
-              </div>
+              <input id="reporter-${t.id}" value="${escapeHtml(t.hospital?.reporter || '')}" placeholder="例如：急診醫師、急診護理師" />
+              <div class="small">最後更新：${t.hospital?.updatedAt || '尚未填寫醫療端回報'}</div>
+              <div class="action-row"><button class="btn" onclick="saveHospital('${t.dbId}', '${t.id}')">儲存醫院回報</button></div>
             </div>
             <div class="panel">
-              <div class="panel-title">
-                <h3>衛生局回報</h3>
-                <span class="role-badge" style="background:#fef3c7;color:#92400e;">衛生局</span>
-              </div>
+              <div class="panel-title"><h3>衛生局回報</h3><span class="role-badge" style="background:#fef3c7;color:#92400e;">衛生局</span></div>
               <label>衛生局回報內容</label>
-              <textarea id="gov-${t.id}" placeholder="例如：已電話追蹤、安排家訪、提供衛教與資源轉介">${escapeHtml(t.report?.note || "")}</textarea>
-              <div class="small">狀態：${getStatusText(t.report?.status)}${!t.report?.note ? "｜尚未填寫衛生所回報" : ""}</div>
-              <div class="action-row">
-                <button class="btn" onclick="saveGov('${t.firestoreId}', '${t.id}')">儲存衛生局回報</button>
-              </div>
+              <textarea id="gov-${t.id}" placeholder="例如：已電話追蹤、安排家訪、提供衛教與資源轉介">${escapeHtml(t.report?.note || '')}</textarea>
+              <div class="small">狀態：${getStatusText(t.report?.status)}${!t.report?.note ? '｜尚未填寫衛生所回報' : ''}</div>
+              <div class="action-row"><button class="btn" onclick="saveGov('${t.dbId}', '${t.id}')">儲存衛生局回報</button></div>
             </div>
           </div>
         </div>
       </div>
-    `).join("");
+    `).join('');
   };
 
   function updateKPI() {
-    document.getElementById("kpiAll").textContent = allTasks.length;
-    document.getElementById("kpiPending").textContent = allTasks.filter(t => t.report?.status === "hospital").length;
-    document.getElementById("kpiProgress").textContent = allTasks.filter(t => t.report?.status === "gov").length;
-    document.getElementById("kpiClosed").textContent = allTasks.filter(t => t.report?.status === "closed").length;
+    document.getElementById('kpiAll').textContent = allTasks.length;
+    document.getElementById('kpiPending').textContent = allTasks.filter(t => t.report?.status === 'hospital').length;
+    document.getElementById('kpiProgress').textContent = allTasks.filter(t => t.report?.status === 'gov').length;
+    document.getElementById('kpiClosed').textContent = allTasks.filter(t => t.report?.status === 'closed').length;
   }
 
   // ===== Helpers =====
   function makeId() {
     const d = new Date();
-    const yyyy = d.getFullYear();
-    const mm = String(d.getMonth()+1).padStart(2,"0");
-    const dd = String(d.getDate()).padStart(2,"0");
-    const rand = String(Math.floor(Math.random()*9000)+1000);
-    return `EMS-${yyyy}${mm}${dd}-${rand}`;
+    return `EMS-${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}-${String(Math.floor(Math.random()*9000)+1000)}`;
   }
   function getNowText() {
     const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
   }
   function calcAge(birth) {
-    if (!birth) return "";
+    if (!birth) return '';
     const today = new Date(); const b = new Date(birth);
     let age = today.getFullYear() - b.getFullYear();
     if (today.getMonth() < b.getMonth() || (today.getMonth() === b.getMonth() && today.getDate() < b.getDate())) age--;
     return age;
   }
   function maskName(name) {
-    if (!name) return "";
-    if (name.length === 1) return name + "○";
-    return name[0] + "○" + name.slice(-1);
+    if (!name) return '';
+    if (name.length === 1) return name + '○';
+    return name[0] + '○' + name.slice(-1);
   }
   function maskPID(pid) {
-    if (!pid) return "-";
+    if (!pid) return '-';
     if (pid.length < 6) return pid;
-    return pid[0] + "****" + pid.slice(-4);
+    return pid[0] + '****' + pid.slice(-4);
   }
   function formatGender(g) {
-    if (g === "M" || g === "男") return "男";
-    if (g === "F" || g === "女") return "女";
-    return "-";
+    if (g === 'M' || g === '男') return '男';
+    if (g === 'F' || g === '女') return '女';
+    return '-';
   }
   function formatHospital(code) {
-    const map = { H01:"萬芳醫院", H02:"基隆長庚", H03:"礦工醫院", H04:"汐止國泰", H05:"部立基隆", H06:"內湖三總", H07:"瑞芳醫院", H08:"台大醫院" };
-    return map[code] || code || "-";
+    const map = { H01:'萬芳醫院', H02:'基隆長庚', H03:'礦工醫院', H04:'汐止國泰', H05:'部立基隆', H06:'內湖三總', H07:'瑞芳醫院', H08:'台大醫院' };
+    return map[code] || code || '-';
   }
-  function formatDateTime(v) { return v ? String(v).replace("T"," ") : ""; }
+  function formatDateTime(v) { return v ? String(v).replace('T',' ') : ''; }
   function getStatusText(st) {
-    if (st === "hospital") return "待醫院回報";
-    if (st === "gov") return "待衛生局回報";
-    if (st === "closed") return "結案";
-    return "-";
+    if (st === 'hospital') return '待醫院回報';
+    if (st === 'gov') return '待衛生局回報';
+    if (st === 'closed') return '結案';
+    return '-';
   }
   function statusClass(st) {
-    if (st === "hospital") return "status-pending";
-    if (st === "gov") return "status-progress";
-    if (st === "closed") return "status-closed";
-    return "status-pending";
+    if (st === 'hospital') return 'status-pending';
+    if (st === 'gov') return 'status-progress';
+    if (st === 'closed') return 'status-closed';
+    return 'status-pending';
   }
   function escapeHtml(str) {
-    return String(str).replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+    return String(str).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   }
 </script>
 </body>
