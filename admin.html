@@ -454,16 +454,27 @@
     const email = document.getElementById('loginEmail').value.trim();
     const password = document.getElementById('loginPassword').value;
     const errEl = document.getElementById('loginErr');
+    const btn = document.querySelector('.login-btn');
     errEl.style.display = 'none';
     if (!email || !password) { showLoginErr('請輸入帳號與密碼'); return; }
+
+    const originalText = btn.textContent;
+    btn.textContent = '登入中...';
+    btn.disabled = true;
+
     try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('登入請求逾時卡死')), 3500));
+      const authPromise = supabase.auth.signInWithPassword({ email, password });
+      
+      const { error } = await Promise.race([authPromise, timeoutPromise]);
       if (error) {
         showLoginErr(error.message.includes('Invalid') ? '帳號或密碼錯誤' : '登入失敗：' + error.message);
+        btn.textContent = originalText;
+        btn.disabled = false;
       }
     } catch (err) {
-      console.error(err);
-      showLoginErr('發生跨分頁干擾，系統即將清除異常快取並重新載入...');
+      console.warn("發生無限迴圈死鎖，系統強制清除病灶:", err);
+      showLoginErr('系統正在清除卡死的快取，將為您重新載入...');
       window.localStorage.clear();
       window.sessionStorage.clear();
       setTimeout(() => window.location.reload(), 1500);
