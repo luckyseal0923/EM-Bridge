@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EMS Bridge Admin｜後臺管理系統</title>
+  <style>
+    :root{
+      --primary:#b91c1c; --primary-dark:#991b1b;
+      --bg:#0f172a; --card:#1e293b; --card2:#162032;
+      --text:#f1f5f9; --muted:#94a3b8; --border:#334155;
+      --shadow:0 8px 24px rgba(0,0,0,0.3);
+      --pending-bg:#431407;--pending-text:#fb923c;--pending-border:#7c2d12;
+      --progress-bg:#0c236e;--progress-text:#93c5fd;--progress-border:#1e3a8a;
+      --done-bg:#052e16;--done-text:#86efac;--done-border:#166534;
+      --closed-bg:#1e293b;--closed-text:#94a3b8;--closed-border:#334155;
+    }
+    *, *::before, *::after{ box-sizing:border-box; }
+    body{ margin:0; background:var(--bg); color:var(--text); min-height:100vh;
+      font-family:-apple-system,BlinkMacSystemFont,"Noto Sans TC","Segoe UI",sans-serif; }
+    .container{ max-width:1600px; margin:0 auto; padding:24px; }
+
+    /* ===== Login Overlay ===== */
+    #loginOverlay{
+      position:fixed; inset:0;
+      background:linear-gradient(135deg,#0f172a,#1e293b);
+      display:flex; align-items:center; justify-content:center; z-index:100;
+    }
+    .login-card{
+      background:#1e293b; border:1px solid var(--border);
+      border-radius:24px; padding:40px 36px; width:380px;
+      box-shadow:0 30px 80px rgba(0,0,0,0.5);
+    }
+    .login-card h2{ margin:0 0 6px; font-size:22px; color:#f1f5f9; }
+    .login-card p{ margin:0 0 24px; font-size:13px; color:var(--muted); }
+    .login-card label{ display:block; font-size:13px; font-weight:600; color:#94a3b8; margin-bottom:6px; }
+    .login-card input{
+      width:100%; background:#0f172a; border:1px solid var(--border); border-radius:12px;
+      padding:12px; font-size:14px; color:#f1f5f9; outline:none; margin-bottom:14px; box-sizing:border-box;
+    }
+    .login-card input:focus{ border-color:#b91c1c; box-shadow:0 0 0 4px rgba(185,28,28,.15); }
+    .login-btn{
+      width:100%; background:#b91c1c; color:#fff; border:none; border-radius:12px;
+      padding:13px; font-size:15px; font-weight:700; cursor:pointer;
+    }
+    .login-btn:hover{ background:#991b1b; }
+    .login-err{ color:#f87171; font-size:13px; margin-top:8px; display:none; }
+    .logo-wrap{ display:flex; align-items:center; gap:12px; margin-bottom:24px; }
+    .logo-icon{
+      width:44px; height:44px; border-radius:12px;
+      background:linear-gradient(135deg,#dc2626,#7f1d1d);
+      display:flex; align-items:center; justify-content:center; color:#fff; font-size:22px;
+    }
+
+    /* ===== Topbar ===== */
+    .topbar{
+      display:flex; justify-content:space-between; align-items:center;
+      gap:16px; margin-bottom:20px;
+    }
+    .brand{ display:flex; align-items:center; gap:14px; }
+    .brand-icon{
+      width:48px; height:48px; border-radius:14px;
+      background:linear-gradient(135deg,#dc2626,#7f1d1d);
+      display:flex; align-items:center; justify-content:center;
+      color:#fff; font-size:24px; box-shadow:var(--shadow);
+    }
+    .brand h2{ margin:0; font-size:22px; }
+    .brand p{ margin:4px 0 0; font-size:13px; color:var(--muted); }
+    .top-actions{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+    btn{ border:none; border-radius:10px; padding:10px 16px; cursor:pointer; font-size:13px; font-weight:600; transition:.2s; }
+    .btn-primary{ background:#b91c1c; color:#fff; border:none; border-radius:10px; padding:10px 16px; cursor:pointer; font-size:13px; font-weight:600; }
+    .btn-primary:hover{ background:#991b1b; }
+    .btn-outline{ background:transparent; color:var(--text); border:1px solid var(--border);
+      border-radius:10px; padding:10px 16px; cursor:pointer; font-size:13px; font-weight:600; }
+    .btn-outline:hover{ background:rgba(255,255,255,0.05); }
+    .btn-danger{ background:#7f1d1d; color:#fca5a5; border:none; border-radius:10px; padding:10px 16px; cursor:pointer; font-size:13px; font-weight:600; }
+    .btn-danger:hover{ background:#991b1b; }
+    .btn-warning{ background:#78350f; color:#fcd34d; border:none; border-radius:10px; padding:10px 16px; cursor:pointer; font-size:13px; font-weight:600; }
+    .btn-warning:hover{ background:#92400e; }
+    .pill{ display:inline-flex; align-items:center; gap:6px;
+      padding:8px 12px; border-radius:999px; background:rgba(255,255,255,.05);
+      border:1px solid var(--border); font-size:13px; color:var(--muted); }
+
+    /* ===== KPI ===== */
+    .kpi-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:20px; }
+    .kpi{ background:var(--card); border:1px solid var(--border); border-radius:18px; padding:18px; box-shadow:var(--shadow); }
+    .kpi-label{ font-size:13px; color:var(--muted); margin-bottom:8px; }
+    .kpi-value{ font-size:28px; font-weight:700; }
+    .kpi-note{ font-size:12px; color:var(--muted); margin-top:8px; }
+
+    /* ===== Controls ===== */
+    .controls-bar{
+      display:grid; grid-template-columns:1.5fr 1fr 1fr auto auto auto; gap:12px;
+      align-items:center; margin-bottom:16px;
+    }
+    input[type="text"], input[type="search"], select{
+      background:#0f172a; border:1px solid var(--border); border-radius:12px;
+      padding:11px 14px; font-size:14px; color:#f1f5f9; outline:none; width:100%;
+    }
+    input[type="text"]:focus, select:focus{ border-color:#dc2626; box-shadow:0 0 0 3px rgba(220,38,38,.1); }
+
+    /* ===== Table ===== */
+    .table-wrapper{ overflow-x:auto; border-radius:18px; border:1px solid var(--border); box-shadow:var(--shadow); }
+    .table-wrapper table{ width:100%; border-collapse:collapse; min-width:900px; }
+    thead{ background:#162032; }
+    thead th{ padding:14px 16px; text-align:left; font-size:13px; color:var(--muted); font-weight:600; white-space:nowrap; }
+    tbody tr{ border-bottom:1px solid #1e293b; cursor:pointer; transition:background .15s; }
+    tbody tr:last-child{ border-bottom:none; }
+    tbody tr:hover{ background:rgba(255,255,255,.04); }
+    tbody td{ padding:14px 16px; font-size:14px; vertical-align:middle; }
+    .id-cell{ font-weight:700; font-size:13px; color:#93c5fd; }
+    .hospital-cell{ font-size:12px; }
+    .status-badge{ padding:5px 10px; border-radius:999px; font-size:12px; font-weight:700; }
+    .status-pending{ background:var(--pending-bg); color:var(--pending-text); }
+    .status-progress{ background:var(--progress-bg); color:var(--progress-text); }
+    .status-done{ background:var(--done-bg); color:var(--done-text); }
+    .status-closed{ background:var(--closed-bg); color:var(--closed-text); }
+    .checkbox{ accent-color:#dc2626; width:15px; height:15px; }
+
+    /* ===== Pagination ===== */
+    .pager{ display:flex; align-items:center; justify-content:space-between; margin-top:16px; }
+    .pager-info{ font-size:13px; color:var(--muted); }
+    .pager-btns{ display:flex; gap:8px; }
+    .pager-btn{
+      background:var(--card); border:1px solid var(--border); border-radius:8px;
+      padding:7px 14px; cursor:pointer; font-size:13px; color:var(--text);
+    }
+    .pager-btn:hover{ background:rgba(255,255,255,.05); }
+    .pager-btn.active{ background:#b91c1c; border-color:#b91c1c; color:#fff; }
+    .pager-btn:disabled{ opacity:.4; cursor:default; }
+
+    /* ===== Drawer ===== */
+    #drawerOverlay{
+      position:fixed; inset:0; background:rgba(0,0,0,.5);
+      display:none; z-index:50;
+    }
+    #drawer{
+      position:fixed; right:0; top:0; bottom:0; width:min(580px,100%);
+      background:var(--card); border-left:1px solid var(--border);
+      overflow-y:auto; padding:24px; z-index:60;
+      transform:translateX(100%); transition:transform .25s ease;
+    }
+    #drawer.open{ transform:translateX(0); }
+    .drawer-close{
+      position:absolute; top:18px; right:18px;
+      background:transparent; border:1px solid var(--border); border-radius:999px;
+      padding:6px 12px; cursor:pointer; font-size:14px; color:var(--muted);
+    }
+    .drawer-title{ font-size:20px; font-weight:700; margin-bottom:4px; }
+    .drawer-sub{ font-size:13px; color:var(--muted); margin-bottom:18px; }
+    .d-section{ background:var(--card2); border:1px solid var(--border); border-radius:14px; padding:14px; margin-bottom:14px; }
+    .d-section h4{ margin:0 0 10px; font-size:14px; color:var(--muted); }
+    .d-row{ display:flex; gap:8px; margin-bottom:8px; }
+    .d-label{ font-size:13px; color:var(--muted); min-width:100px; }
+    .d-val{ font-size:13px; font-weight:600; }
+    .d-btn-row{ display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; }
+
+    /* ===== Export Modal ===== */
+    #exportModal{
+      position:fixed; inset:0; background:rgba(0,0,0,.6);
+      display:none; align-items:center; justify-content:center; z-index:80;
+    }
+    .export-card{
+      background:var(--card); border:1px solid var(--border); border-radius:20px;
+      padding:28px; width:min(480px,90%); box-shadow:var(--shadow);
+    }
+    .export-card h3{ margin:0 0 6px; }
+    .export-card p{ margin:0 0 16px; font-size:13px; color:var(--muted); }
+    .export-options{ display:grid; grid-template-columns:repeat(2,1fr); gap:8px; margin-bottom:20px; }
+    .export-opt{ display:flex; align-items:center; gap:8px; font-size:13px;
+      background:var(--card2); border:1px solid var(--border); border-radius:10px; padding:10px 12px; }
+    .export-opt input{ accent-color:#dc2626; width:15px; height:15px; }
+
+    /* ===== Misc ===== */
+    .loading-wrap{ text-align:center; padding:40px; color:var(--muted); }
+    .spinner{ width:32px; height:32px; border:3px solid #334155;
+      border-top-color:#b91c1c; border-radius:50%;
+      animation:spin .7s linear infinite; margin:0 auto 12px; }
+    @keyframes spin{ to{ transform:rotate(360deg); } }
+    .empty{ text-align:center; padding:40px; color:var(--muted); }
+
+    @media(max-width:1024px){ .controls-bar{ grid-template-columns:1fr 1fr; } .kpi-grid{ grid-template-columns:repeat(2,1fr); } }
+    @media(max-width:640px){ .container{ padding:14px; } .topbar{ flex-direction:column; align-items:flex-start; } .kpi-grid{ grid-template-columns:1fr 1fr; } }
+  </style>
+</head>
+<body>
+
+<!-- ===== Login Overlay ===== -->
+<div id="loginOverlay">
+  <div class="login-card">
+    <div class="logo-wrap">
+      <div class="logo-icon">🛡️</div>
+      <div>
+        <h3 style="margin:0;color:#f1f5f9;">EMS Bridge</h3>
+        <p style="margin:0;font-size:12px;color:var(--muted);">後臺管理系統</p>
+      </div>
+    </div>
+    <h2>管理員登入</h2>
+    <p>僅限授權人員進入，操作記錄將留存備查</p>
+    <label>電子郵件</label>
+    <input id="loginEmail" type="email" placeholder="請輸入管理員 Email" autocomplete="username" />
+    <label>密碼</label>
+    <input id="loginPassword" type="password" placeholder="請輸入密碼" autocomplete="current-password"
+           onkeydown="if(event.key==='Enter') doLogin()" />
+    <button class="login-btn" onclick="doLogin()">登入管理系統</button>
+    <div class="login-err" id="loginErr"></div>
+  </div>
+</div>
+
+<div class="container" id="appContent" style="display:none;">
+  <!-- Topbar -->
+  <div class="topbar">
+    <div class="brand">
+      <div class="brand-icon">🛡️</div>
+      <div>
+        <h2>後臺管理系統</h2>
+        <p>EMS Bridge Admin ｜案件監控、流程管理、追蹤統計</p>
+      </div>
+    </div>
+    <div class="top-actions">
+      <span class="pill" id="authStatus">載入中…</span>
+      <button class="btn-outline" onclick="doLogout()">登出</button>
+      <button class="btn-outline" onclick="window.location.href='index.html'">← EMS 主頁</button>
+    </div>
+  </div>
+
+  <!-- KPI -->
+  <div class="kpi-grid">
+    <div class="kpi">
+      <div class="kpi-label">案件總數</div>
+      <div class="kpi-value" id="kpiAll">0</div>
+      <div class="kpi-note">資料庫中所有案件數量</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">待醫院回報</div>
+      <div class="kpi-value" id="kpiPending">0</div>
+      <div class="kpi-note">尚未完成院端回報</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">處理中案件</div>
+      <div class="kpi-value" id="kpiProgress">0</div>
+      <div class="kpi-note">待衛生局確認</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">已結案</div>
+      <div class="kpi-value" id="kpiClosed">0</div>
+      <div class="kpi-note">流程完整結案</div>
+    </div>
+  </div>
+
+  <!-- Controls -->
+  <div class="controls-bar">
+    <input type="text" id="searchInput" placeholder="搜尋案件編號 / 姓名 / 主訴 / 醫院" oninput="applyFilter()" />
+    <select id="monthFilter" onchange="applyFilter()">
+      <option value="">全部月份</option>
+    </select>
+    <select id="statusFilter" onchange="applyFilter()">
+      <option value="">全部狀態</option>
+      <option value="hospital">待醫院回報</option>
+      <option value="gov">待衛生局回報</option>
+      <option value="closed">已結案</option>
+    </select>
+    <button class="btn-warning" onclick="batchClose()">批次結案</button>
+    <button class="btn-danger" onclick="batchDelete()">批次刪除</button>
+    <button class="btn-primary" onclick="openExportModal()">📄 匯出 CSV</button>
+  </div>
+
+  <!-- Table -->
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th><input type="checkbox" class="checkbox" id="selectAll" onchange="toggleSelectAll(this.checked)" /></th>
+          <th>案件編號</th>
+          <th>病患姓名</th>
+          <th>性別</th>
+          <th>年齡</th>
+          <th>主訴</th>
+          <th>後送醫院</th>
+          <th>衛生局診斷</th>
+          <th>醫院動向</th>
+          <th>狀態</th>
+          <th>通報時間</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody">
+        <tr><td colspan="11"><div class="loading-wrap"><div class="spinner"></div>載入中…</div></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  <div class="pager">
+    <div class="pager-info" id="pagerInfo">-</div>
+    <div class="pager-btns" id="pagerBtns"></div>
+  </div>
+</div>
+
+<!-- Detail Drawer -->
+<div id="drawerOverlay" onclick="closeDrawer()"></div>
+<div id="drawer">
+  <button class="drawer-close" onclick="closeDrawer()">✕ 關閉</button>
+  <div id="drawerContent"></div>
+</div>
+
+<!-- Export Modal -->
+<div id="exportModal">
+  <div class="export-card">
+    <h3>📄 選擇要匯出的欄位</h3>
+    <p>選取您需要的欄位後按下「確認匯出」</p>
+    <div class="export-options">
+      <label class="export-opt"><input type="checkbox" id="exp-id" checked /> 案件編號</label>
+      <label class="export-opt"><input type="checkbox" id="exp-name" checked /> 姓名</label>
+      <label class="export-opt"><input type="checkbox" id="exp-gender" /> 性別</label>
+      <label class="export-opt"><input type="checkbox" id="exp-birth" /> 出生日期</label>
+      <label class="export-opt"><input type="checkbox" id="exp-pid" /> 身分證號</label>
+      <label class="export-opt"><input type="checkbox" id="exp-addr" /> 地址</label>
+      <label class="export-opt"><input type="checkbox" id="exp-time" checked /> 通報時間</label>
+      <label class="export-opt"><input type="checkbox" id="exp-cc" checked /> 主訴</label>
+      <label class="export-opt"><input type="checkbox" id="exp-hospital" checked /> 後送醫院</label>
+      <label class="export-opt"><input type="checkbox" id="exp-diag" checked /> 診斷</label>
+      <label class="export-opt"><input type="checkbox" id="exp-treat" /> 治療</label>
+      <label class="export-opt"><input type="checkbox" id="exp-disp" /> 醫療動向</label>
+      <label class="export-opt"><input type="checkbox" id="exp-status" checked /> 狀態</label>
+      <label class="export-opt"><input type="checkbox" id="exp-note" /> 衛生局回報</label>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;">
+      <button class="btn-outline" onclick="closeExportModal()">取消</button>
+      <button class="btn-primary" onclick="doExportCSV()">確認匯出</button>
+    </div>
+  </div>
+</div>
+
+<!-- Firebase SDK -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import {
+    getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged
+  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+  import {
+    getFirestore, collection, doc,
+    updateDoc, deleteDoc, writeBatch,
+    onSnapshot, query, orderBy
+  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+  // ===== Firebase Config =====
+  const firebaseConfig = {
+    apiKey: "AIzaSyAz-X2fLMx-DpTwx5SKKa23OE2DZz1fY88",
+    authDomain: "ems-briage.firebaseapp.com",
+    projectId: "ems-briage",
+    storageBucket: "ems-briage.firebasestorage.app",
+    messagingSenderId: "945652633051",
+    appId: "1:945652633051:web:948e7542b6a6fa4330abfe"
+  };
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  // ===== State =====
+  let allTasks = [];
+  let filteredTasks = [];
+  let currentPage = 1;
+  const PAGE_SIZE = 15;
+  let unsubscribe = null;
+
+  // ===== Auth =====
+  window.doLogin = async function() {
+    const email = document.getElementById("loginEmail").value.trim();
+    const password = document.getElementById("loginPassword").value;
+    const errEl = document.getElementById("loginErr");
+    errEl.style.display = "none";
+    if (!email || !password) { showLoginErr("請輸入帳號與密碼"); return; }
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+    } catch(e) {
+      const msg = e.code === "auth/invalid-credential" || e.code === "auth/wrong-password" || e.code === "auth/user-not-found"
+        ? "帳號或密碼錯誤" : "登入失敗：" + e.message;
+      showLoginErr(msg);
+    }
+  };
+
+  window.doLogout = async function() {
+    if (unsubscribe) unsubscribe();
+    await signOut(auth);
+  };
+
+  function showLoginErr(msg) {
+    const el = document.getElementById("loginErr");
+    el.textContent = msg; el.style.display = "block";
+  }
+
+  onAuthStateChanged(auth, (user) => {
+    if (user) {
+      document.getElementById("loginOverlay").style.display = "none";
+      document.getElementById("appContent").style.display = "block";
+      document.getElementById("authStatus").textContent = "✓ " + user.email;
+      subscribeToTasks();
+    } else {
+      document.getElementById("loginOverlay").style.display = "flex";
+      document.getElementById("appContent").style.display = "none";
+      if (unsubscribe) { unsubscribe(); unsubscribe = null; }
+      allTasks = [];
+    }
+  });
+
+  // ===== Firestore real-time listener =====
+  function subscribeToTasks() {
+    const q = query(collection(db, "cases"), orderBy("createdAt", "desc"));
+    unsubscribe = onSnapshot(q, (snapshot) => {
+      allTasks = snapshot.docs.map(d => ({ firestoreId: d.id, ...d.data() }));
+      buildMonthFilter();
+      applyFilter();
+    }, (err) => {
+      document.getElementById("tableBody").innerHTML =
+        `<tr><td colspan="11"><div class="empty">⚠️ 無法載入：${err.message}</div></td></tr>`;
+    });
+  }
+
+  // ===== Filters =====
+  function buildMonthFilter() {
+    const months = new Set();
+    allTasks.forEach(t => {
+      if (t.time) months.add(t.time.slice(0, 7));
+    });
+    const sel = document.getElementById("monthFilter");
+    const cur = sel.value;
+    sel.innerHTML = '<option value="">全部月份</option>';
+    [...months].sort().reverse().forEach(m => {
+      const opt = document.createElement("option");
+      opt.value = m; opt.textContent = m;
+      if (m === cur) opt.selected = true;
+      sel.appendChild(opt);
+    });
+  }
+
+  window.applyFilter = function() {
+    const q = (document.getElementById("searchInput").value || "").toLowerCase();
+    const month = document.getElementById("monthFilter").value;
+    const status = document.getElementById("statusFilter").value;
+    filteredTasks = allTasks.filter(t => {
+      const kw = [t.id, t.name, t.cc, formatHospital(t.transportHospital),
+        t.hospital?.diagnosis || ""].join(" ").toLowerCase().includes(q);
+      const mo = !month || (t.time || "").startsWith(month);
+      const st = !status || t.report?.status === status;
+      return kw && mo && st;
+    });
+    currentPage = 1;
+    updateKPI();
+    renderTable();
+  };
+
+  // ===== KPI =====
+  function updateKPI() {
+    document.getElementById("kpiAll").textContent = allTasks.length;
+    document.getElementById("kpiPending").textContent = allTasks.filter(t => t.report?.status === "hospital").length;
+    document.getElementById("kpiProgress").textContent = allTasks.filter(t => t.report?.status === "gov").length;
+    document.getElementById("kpiClosed").textContent = allTasks.filter(t => t.report?.status === "closed").length;
+  }
+
+  // ===== Render Table =====
+  function renderTable() {
+    const start = (currentPage - 1) * PAGE_SIZE;
+    const page = filteredTasks.slice(start, start + PAGE_SIZE);
+    const tbody = document.getElementById("tableBody");
+    if (filteredTasks.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="11"><div class="empty">目前沒有符合條件的案件</div></td></tr>`;
+      renderPager();
+      return;
+    }
+    tbody.innerHTML = page.map(t => `
+      <tr onclick="openDrawer('${t.firestoreId}')">
+        <td onclick="event.stopPropagation()"><input type="checkbox" class="checkbox row-check" data-fid="${t.firestoreId}" data-id="${t.id}" /></td>
+        <td class="id-cell">${t.id}</td>
+        <td>${maskName(t.name)}</td>
+        <td>${formatGender(t.gender)}</td>
+        <td>${calcAge(t.birth) || "-"}</td>
+        <td>${t.cc || "-"}</td>
+        <td class="hospital-cell">${formatHospital(t.transportHospital)}</td>
+        <td>${t.hospital?.diagnosis || "-"}</td>
+        <td>${t.hospital?.disposition || "-"}</td>
+        <td><span class="status-badge ${statusClass(t.report?.status)}">${getStatusText(t.report?.status)}</span></td>
+        <td>${formatDateTime(t.time)}</td>
+      </tr>
+    `).join("");
+    renderPager();
+  }
+
+  function renderPager() {
+    const total = filteredTasks.length;
+    const pages = Math.ceil(total / PAGE_SIZE);
+    document.getElementById("pagerInfo").textContent =
+      `顯示第 ${Math.min((currentPage-1)*PAGE_SIZE+1, total)} - ${Math.min(currentPage*PAGE_SIZE, total)} 筆，共 ${total} 筆`;
+    const btnContainer = document.getElementById("pagerBtns");
+    btnContainer.innerHTML = "";
+    const addBtn = (label, page, active, disabled) => {
+      const b = document.createElement("button");
+      b.className = "pager-btn" + (active ? " active" : "");
+      b.textContent = label; b.disabled = disabled;
+      b.onclick = () => { currentPage = page; renderTable(); };
+      btnContainer.appendChild(b);
+    };
+    addBtn("‹", currentPage - 1, false, currentPage <= 1);
+    for (let i = 1; i <= pages; i++) {
+      if (i === 1 || i === pages || Math.abs(i - currentPage) <= 1) {
+        addBtn(i, i, i === currentPage, false);
+      } else if (Math.abs(i - currentPage) === 2) {
+        const dots = document.createElement("span");
+        dots.textContent = "…"; dots.style.cssText = "padding:0 4px;color:var(--muted);";
+        btnContainer.appendChild(dots);
+      }
+    }
+    addBtn("›", currentPage + 1, false, currentPage >= pages);
+  }
+
+  // ===== Select All =====
+  window.toggleSelectAll = function(checked) {
+    document.querySelectorAll(".row-check").forEach(c => { c.checked = checked; });
+  };
+
+  // ===== Batch Actions =====
+  window.batchClose = async function() {
+    const checks = [...document.querySelectorAll(".row-check:checked")];
+    if (!checks.length) { alert("請先勾選要結案的案件"); return; }
+    if (!confirm(`確定要將 ${checks.length} 筆案件結案？`)) return;
+    const batch = writeBatch(db);
+    checks.forEach(c => {
+      batch.update(doc(db, "cases", c.dataset.fid), { "report.status": "closed" });
+    });
+    try { await batch.commit(); } catch(e) { alert("批次結案失敗：" + e.message); }
+  };
+
+  window.batchDelete = async function() {
+    const checks = [...document.querySelectorAll(".row-check:checked")];
+    if (!checks.length) { alert("請先勾選要刪除的案件"); return; }
+    if (!confirm(`⚠️ 確定要永久刪除 ${checks.length} 筆案件？此操作無法還原！`)) return;
+    const batch = writeBatch(db);
+    checks.forEach(c => { batch.delete(doc(db, "cases", c.dataset.fid)); });
+    try { await batch.commit(); } catch(e) { alert("批次刪除失敗：" + e.message); }
+  };
+
+  // ===== Drawer =====
+  window.openDrawer = function(firestoreId) {
+    const t = allTasks.find(x => x.firestoreId === firestoreId);
+    if (!t) return;
+    const content = document.getElementById("drawerContent");
+    content.innerHTML = `
+      <div class="drawer-title">${t.id}</div>
+      <div class="drawer-sub">${getStatusText(t.report?.status)} ｜ 建立者：${t.createdByEmail || "-"}</div>
+      <div class="d-section">
+        <h4>EMS 院前資訊</h4>
+        <div class="d-row"><div class="d-label">病患姓名</div><div class="d-val">${maskName(t.name)}</div></div>
+        <div class="d-row"><div class="d-label">出生日期</div><div class="d-val">${t.birth || "-"}</div></div>
+        <div class="d-row"><div class="d-label">性別</div><div class="d-val">${formatGender(t.gender)}</div></div>
+        <div class="d-row"><div class="d-label">身分證號</div><div class="d-val">${t.pid ? maskPID(t.pid) : "-"}</div></div>
+        <div class="d-row"><div class="d-label">地址</div><div class="d-val">${t.addr || "-"}</div></div>
+        <div class="d-row"><div class="d-label">主訴</div><div class="d-val">${t.cc || "-"}</div></div>
+        <div class="d-row"><div class="d-label">後送醫院</div><div class="d-val">${formatHospital(t.transportHospital)}</div></div>
+        <div class="d-row"><div class="d-label">通報時間</div><div class="d-val">${formatDateTime(t.time)}</div></div>
+        <div class="d-row"><div class="d-label">EMS 補充</div><div class="d-val" style="line-height:1.6;">${t.emsNote || "無"}</div></div>
+      </div>
+      <div class="d-section">
+        <h4>醫院端回報</h4>
+        <div class="d-row"><div class="d-label">診斷</div><div class="d-val">${t.hospital?.diagnosis || "未回報"}</div></div>
+        <div class="d-row"><div class="d-label">治療</div><div class="d-val">${t.hospital?.treatment || "未回報"}</div></div>
+        <div class="d-row"><div class="d-label">動向</div><div class="d-val">${t.hospital?.disposition || "未回報"}</div></div>
+        <div class="d-row"><div class="d-label">回報者</div><div class="d-val">${t.hospital?.reporter || "-"}</div></div>
+        <div class="d-row"><div class="d-label">更新時間</div><div class="d-val">${t.hospital?.updatedAt || "-"}</div></div>
+      </div>
+      <div class="d-section">
+        <h4>衛生局回報</h4>
+        <div class="d-row"><div class="d-label">狀態</div><div class="d-val">${getStatusText(t.report?.status)}</div></div>
+        <div class="d-row"><div class="d-label">回報內容</div><div class="d-val">${t.report?.note || "未填寫"}</div></div>
+      </div>
+      <div class="d-btn-row">
+        <button class="btn-warning" onclick="closeSingleCase('${t.firestoreId}')">結案</button>
+        <button class="btn-danger" onclick="deleteSingleCase('${t.firestoreId}')">刪除</button>
+      </div>
+    `;
+    document.getElementById("drawerOverlay").style.display = "block";
+    document.getElementById("drawer").classList.add("open");
+  };
+
+  window.closeDrawer = function() {
+    document.getElementById("drawerOverlay").style.display = "none";
+    document.getElementById("drawer").classList.remove("open");
+  };
+
+  window.closeSingleCase = async function(firestoreId) {
+    if (!confirm("確定要結案此案件？")) return;
+    try {
+      await updateDoc(doc(db, "cases", firestoreId), { "report.status": "closed" });
+      closeDrawer();
+    } catch(e) { alert("結案失敗：" + e.message); }
+  };
+
+  window.deleteSingleCase = async function(firestoreId) {
+    if (!confirm("⚠️ 確定要永久刪除此案件？")) return;
+    try {
+      await deleteDoc(doc(db, "cases", firestoreId));
+      closeDrawer();
+    } catch(e) { alert("刪除失敗：" + e.message); }
+  };
+
+  // ===== Export Modal =====
+  window.openExportModal = function() {
+    document.getElementById("exportModal").style.display = "flex";
+  };
+  window.closeExportModal = function() {
+    document.getElementById("exportModal").style.display = "none";
+  };
+
+  window.doExportCSV = function() {
+    const fields = [
+      { id:"exp-id",      key:"id",               label:"案件編號" },
+      { id:"exp-name",    key:"name",              label:"姓名" },
+      { id:"exp-gender",  key:"gender",            label:"性別" },
+      { id:"exp-birth",   key:"birth",             label:"出生日期" },
+      { id:"exp-pid",     key:"pid",               label:"身分證號" },
+      { id:"exp-addr",    key:"addr",              label:"地址" },
+      { id:"exp-time",    key:"time",              label:"通報時間" },
+      { id:"exp-cc",      key:"cc",                label:"主訴" },
+      { id:"exp-hospital",key:"transportHospital", label:"後送醫院" },
+      { id:"exp-diag",    key:"hospital.diagnosis",label:"診斷" },
+      { id:"exp-treat",   key:"hospital.treatment",label:"治療" },
+      { id:"exp-disp",    key:"hospital.disposition",label:"醫療動向" },
+      { id:"exp-status",  key:"report.status",     label:"狀態" },
+      { id:"exp-note",    key:"report.note",       label:"衛生局回報" },
+    ].filter(f => document.getElementById(f.id)?.checked);
+
+    if (!fields.length) { alert("請至少選擇一個欄位"); return; }
+
+    const getNestedVal = (obj, path) => {
+      return path.split(".").reduce((o, k) => (o && o[k] !== undefined ? o[k] : ""), obj);
+    };
+
+    const rows = [fields.map(f => f.label).join(",")];
+    filteredTasks.forEach(t => {
+      rows.push(fields.map(f => {
+        let v = getNestedVal(t, f.key);
+        if (f.key === "gender") v = formatGender(v);
+        if (f.key === "transportHospital") v = formatHospital(v);
+        if (f.key === "report.status") v = getStatusText(v);
+        v = String(v || "").replace(/"/g, '""');
+        return `"${v}"`;
+      }).join(","));
+    });
+
+    const bom = "\uFEFF";
+    const blob = new Blob([bom + rows.join("\n")], { type:"text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `EMS_Bridge_${new Date().toISOString().slice(0,10)}.csv`;
+    a.click(); URL.revokeObjectURL(url);
+    closeExportModal();
+  };
+
+  // ===== Helpers =====
+  function maskName(name) {
+    if (!name) return "";
+    if (name.length === 1) return name + "○";
+    return name[0] + "○" + name.slice(-1);
+  }
+  function maskPID(pid) {
+    if (!pid) return "-";
+    if (pid.length < 6) return pid;
+    return pid[0] + "****" + pid.slice(-4);
+  }
+  function formatGender(g) {
+    if (g === "M" || g === "男") return "男";
+    if (g === "F" || g === "女") return "女";
+    return "-";
+  }
+  function formatHospital(code) {
+    const map = { H01:"萬芳醫院",H02:"基隆長庚",H03:"礦工醫院",H04:"汐止國泰",H05:"部立基隆",H06:"內湖三總",H07:"瑞芳醫院",H08:"台大醫院" };
+    return map[code] || code || "-";
+  }
+  function formatDateTime(v) { return v ? String(v).replace("T"," ") : "-"; }
+  function getStatusText(st) {
+    if (st === "hospital") return "待醫院回報";
+    if (st === "gov") return "待衛生局回報";
+    if (st === "closed") return "已結案";
+    return "-";
+  }
+  function statusClass(st) {
+    if (st === "hospital") return "status-pending";
+    if (st === "gov") return "status-progress";
+    if (st === "closed") return "status-closed";
+    return "status-pending";
+  }
+  function calcAge(birth) {
+    if (!birth) return "";
+    const today = new Date(); const b = new Date(birth);
+    let age = today.getFullYear() - b.getFullYear();
+    if (today.getMonth() < b.getMonth() || (today.getMonth() === b.getMonth() && today.getDate() < b.getDate())) age--;
+    return age;
+  }
+</script>
+</body>
+</html>
