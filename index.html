@@ -495,34 +495,42 @@
 
   // ===== Auth State Listener =====
   supabase.auth.onAuthStateChange(async (event, session) => {
-    // 如果正在顯示註冊成功彈窗，跳過自動登入流程
     if (_isRegistering) return;
     currentUser = session?.user ?? null;
     if (currentUser) {
-      // 檢查帳號是否啟用
-      const { data: profile } = await supabase
-        .from('profiles').select('is_active, display_name, role')
-        .eq('id', currentUser.id).single();
-      if (profile && !profile.is_active) {
-        document.getElementById('loginOverlay').style.display = 'flex';
-        document.getElementById('appContent').style.display = 'none';
-        if (realtimeChannel) { supabase.removeChannel(realtimeChannel); realtimeChannel = null; }
-        showLoginErr('此帳號已被停用，請聯絡管理員');
-        return;
-      }
-      document.getElementById('loginOverlay').style.display = 'none';
-      document.getElementById('appContent').style.display = 'block';
-      const displayName = profile?.display_name || currentUser.email;
-      document.getElementById('authStatus').textContent = '✓ ' + displayName;
-      
-      // 根據權限顯示後台按鈕
-      if (profile?.role === 'admin') {
-        document.getElementById('btnAdmin').style.display = 'inline-block';
-      } else {
-        document.getElementById('btnAdmin').style.display = 'none';
-      }
+      try {
+        const { data: profile, error } = await supabase
+          .from('profiles').select('is_active, display_name, role')
+          .eq('id', currentUser.id).single();
+          
+        if (error) throw error;
 
-      if (!realtimeChannel) subscribeToTasks();
+        if (profile && !profile.is_active) {
+          document.getElementById('loginOverlay').style.display = 'flex';
+          document.getElementById('appContent').style.display = 'none';
+          if (realtimeChannel) { supabase.removeChannel(realtimeChannel); realtimeChannel = null; }
+          showLoginErr('此帳號已被停用，請聯絡管理員');
+          return;
+        }
+        
+        document.getElementById('loginOverlay').style.display = 'none';
+        document.getElementById('appContent').style.display = 'block';
+        const displayName = profile?.display_name || currentUser.email;
+        document.getElementById('authStatus').textContent = '✓ ' + displayName;
+        
+        if (profile?.role === 'admin') {
+          document.getElementById('btnAdmin').style.display = 'inline-block';
+        } else {
+          document.getElementById('btnAdmin').style.display = 'none';
+        }
+
+        if (!realtimeChannel) subscribeToTasks();
+      } catch (err) {
+        console.warn("連線或權限過期，自動清除快取...", err);
+        await supabase.auth.signOut();
+        window.localStorage.clear();
+        window.location.reload();
+      }
     } else {
       document.getElementById('loginOverlay').style.display = 'flex';
       document.getElementById('appContent').style.display = 'none';

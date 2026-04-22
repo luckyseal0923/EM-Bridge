@@ -485,24 +485,32 @@
   supabase.auth.onAuthStateChange(async (event, session) => {
     const user = session?.user ?? null;
     if (user) {
-      // 檢查是否為管理員
-      const { data: profile } = await supabase
-        .from('profiles').select('is_active, display_name, role')
-        .eq('id', user.id).single();
+      try {
+        const { data: profile, error } = await supabase
+          .from('profiles').select('is_active, display_name, role')
+          .eq('id', user.id).single();
 
-      if (!profile || !profile.is_active || profile.role !== 'admin') {
-        document.getElementById('loginOverlay').style.display = 'flex';
-        document.getElementById('appContent').style.display = 'none';
-        if (realtimeChannel) { supabase.removeChannel(realtimeChannel); realtimeChannel = null; }
-        showLoginErr('權限不足，此為管理員專用頁面。請使用管理員帳號登入。');
-        return;
+        if (error) throw error;
+
+        if (!profile || !profile.is_active || profile.role !== 'admin') {
+          document.getElementById('loginOverlay').style.display = 'flex';
+          document.getElementById('appContent').style.display = 'none';
+          if (realtimeChannel) { supabase.removeChannel(realtimeChannel); realtimeChannel = null; }
+          showLoginErr('權限不足，此為管理員專用頁面。請使用管理員帳號登入。');
+          return;
+        }
+
+        document.getElementById('loginOverlay').style.display = 'none';
+        document.getElementById('appContent').style.display = 'block';
+        const displayName = profile?.display_name || user.email;
+        document.getElementById('authStatus').textContent = '✓ ' + displayName;
+        if (!realtimeChannel) subscribeToTasks();
+      } catch (err) {
+        console.warn("連線或權限過期，自動清除快取...", err);
+        await supabase.auth.signOut();
+        window.localStorage.clear();
+        window.location.reload();
       }
-
-      document.getElementById('loginOverlay').style.display = 'none';
-      document.getElementById('appContent').style.display = 'block';
-      const displayName = profile?.display_name || user.email;
-      document.getElementById('authStatus').textContent = '✓ ' + displayName;
-      if (!realtimeChannel) subscribeToTasks();
     } else {
       document.getElementById('loginOverlay').style.display = 'flex';
       document.getElementById('appContent').style.display = 'none';
