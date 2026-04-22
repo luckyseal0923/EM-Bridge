@@ -326,7 +326,6 @@
             <th>單位</th>
             <th>Email</th>
             <th>權限</th>
-            <th>狀態</th>
             <th>建立時間</th>
             <th>操作</th>
           </tr>
@@ -430,7 +429,7 @@
   .action-btns { display:flex; gap:6px; }
   .action-btns button { padding:4px 10px; border-radius:6px; border:none; cursor:pointer; font-size:.8rem; font-weight:600; }
   .btn-edit { background:#dbeafe; color:#1d4ed8; }
-  .btn-toggle { background:#fef3c7; color:#92400e; }
+  .btn-delete { background:#fee2e2; color:#dc2626; }
   .btn-reset { background:#f3f4f6; color:#374151; }
 </style>
 
@@ -1006,14 +1005,11 @@
         <td><div style="font-size:.9rem;color:#475569;">${u.unit || '-'}</div></td>
         <td style="color:#475569;">${u.email}</td>
         <td><span class="role-tag role-${u.role}">${roleLabel(u.role)}</span></td>
-        <td>${u.is_active
-          ? '<span class="active-badge">啟用</span>'
-          : '<span class="inactive-badge">停用</span>'}</td>
         <td style="color:#94a3b8;font-size:.85rem;">${u.created_at ? u.created_at.slice(0,10) : '-'}</td>
         <td>
           <div class="action-btns">
             <button class="btn-edit" onclick="openUserModal('${u.id}')">編輯</button>
-            <button class="btn-toggle" onclick="toggleUserActive('${u.id}', ${u.is_active})">${u.is_active ? '停用' : '啟用'}</button>
+            <button class="btn-delete" onclick="deleteUserAccount('${u.id}', '${u.email}')">刪除</button>
             <button class="btn-reset" onclick="sendResetEmail('${u.email}')">重設密碼</button>
           </div>
         </td>
@@ -1094,13 +1090,11 @@
     await loadUsers();
   };
 
-  window.toggleUserActive = async function(profileId, currentActive) {
-    const action = currentActive ? '停用' : '啟用';
-    if (!confirm(`確定要${action}此帳號？`)) return;
-    const { error } = await supabase.from('profiles').update({
-      is_active: !currentActive
-    }).eq('id', profileId);
-    if (error) { alert(`${action}失敗：` + error.message); return; }
+  window.deleteUserAccount = async function(profileId, email) {
+    if (!confirm(`⚠️ 確定要刪除帳號 ${email}？\n此操作將永久移除其在平台的權限與設定，且無法還原！`)) return;
+    const { error } = await supabase.from('profiles').delete().eq('id', profileId);
+    if (error) { alert('刪除失敗：' + error.message); return; }
+    alert('✓ 帳號已永久刪除');
     await loadUsers();
   };
 
