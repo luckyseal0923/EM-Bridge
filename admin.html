@@ -463,7 +463,9 @@
       }
     } catch (err) {
       console.error(err);
-      showLoginErr('發生跨分頁干擾，系統即將為您重新載入以恢復登入狀態...');
+      showLoginErr('發生跨分頁干擾，系統即將清除異常快取並重新載入...');
+      window.localStorage.clear();
+      window.sessionStorage.clear();
       setTimeout(() => window.location.reload(), 1500);
     }
   };
@@ -473,6 +475,10 @@
     try {
       await supabase.auth.signOut();
     } catch(err) {
+      console.warn("Logout error:", err);
+    } finally {
+      window.localStorage.clear();
+      window.sessionStorage.clear();
       window.location.reload();
     }
   };
