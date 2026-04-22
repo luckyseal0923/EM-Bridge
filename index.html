@@ -435,12 +435,17 @@
       }
     } catch (err) {
       console.warn("發生無限迴圈死鎖，系統強制清除病灶:", err);
-      showLoginErr('系統正在清除卡死的快取，將為您重新載入... 隨後將自動為您登入！');
+      
+      const toast = document.createElement('div');
+      toast.style.cssText = 'position:fixed;top:40px;left:50%;transform:translateX(-50%);background:rgba(51,65,85,0.95);color:#f1f5f9;padding:14px 28px;border-radius:30px;font-size:14px;font-weight:500;box-shadow:0 10px 30px rgba(0,0,0,0.25);z-index:9999;backdrop-filter:blur(6px);transition:all 0.3s ease;';
+      toast.textContent = '上次未完成系統登出，需要稍候才能協助登入...';
+      document.body.appendChild(toast);
+
       window.localStorage.clear();
       // 暫存帳號密碼，供重新載入後自動登入使用
       window.sessionStorage.setItem('auto_heal_email', email);
       window.sessionStorage.setItem('auto_heal_pwd', password);
-      setTimeout(() => window.location.reload(), 1500);
+      setTimeout(() => window.location.reload(), 2000);
     }
   };
 
