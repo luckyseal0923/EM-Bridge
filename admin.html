@@ -199,6 +199,7 @@
     <p>僅限授權人員進入，操作記錄將留存備查</p>
     <label>電子郵件</label>
     <input id="loginEmail" type="email" placeholder="請輸入管理員 Email" autocomplete="username" />
+    <div id="autoHealMsg" style="display:none; background:#f1f5f9; color:#475569; border-left:3px solid #64748b; padding:10px 14px; font-size:13px; font-weight:600; border-radius:4px; margin-bottom:15px; animation:fadeIn .3s ease;"></div>
     <label>密碼</label>
     <input id="loginPassword" type="password" placeholder="請輸入密碼" autocomplete="current-password"
            onkeydown="if(event.key==='Enter') doLogin()" />
@@ -489,10 +490,11 @@
     } catch (err) {
       console.warn("發生無限迴圈死鎖，系統強制清除病灶:", err);
       
-      const toast = document.createElement('div');
-      toast.style.cssText = 'position:fixed;top:40px;left:50%;transform:translateX(-50%);background:rgba(51,65,85,0.95);color:#f1f5f9;padding:14px 28px;border-radius:30px;font-size:14px;font-weight:500;box-shadow:0 10px 30px rgba(0,0,0,0.25);z-index:9999;backdrop-filter:blur(6px);transition:all 0.3s ease;';
-      toast.textContent = '上次未完成系統登出，需要稍候才能協助登入...';
-      document.body.appendChild(toast);
+      const inlineMsg = document.getElementById('autoHealMsg');
+      if (inlineMsg) {
+        inlineMsg.textContent = '上次未完成系統登出，需要稍候才能協助登入...';
+        inlineMsg.style.display = 'block';
+      }
 
       window.localStorage.clear();
       // 暫存帳號密碼，供重新載入後自動登入使用
