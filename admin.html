@@ -239,7 +239,7 @@
     <div class="kpi">
       <div class="kpi-label">處理中案件</div>
       <div class="kpi-value" id="kpiProgress">0</div>
-      <div class="kpi-note">待衛生局確認</div>
+      <div class="kpi-note">待衛生局 / 後台處理</div>
     </div>
     <div class="kpi">
       <div class="kpi-label">已結案</div>
@@ -267,6 +267,7 @@
       <option value="">全部狀態</option>
       <option value="hospital">待醫院回報</option>
       <option value="gov">待衛生局回報</option>
+      <option value="reviewed">待後台結案</option>
       <option value="closed">已結案</option>
     </select>
     <button class="btn-warning" onclick="batchClose()">批次結案</button>
@@ -593,7 +594,7 @@
   function updateKPI() {
     document.getElementById('kpiAll').textContent = allTasks.length;
     document.getElementById('kpiPending').textContent = allTasks.filter(t => t.report?.status === 'hospital').length;
-    document.getElementById('kpiProgress').textContent = allTasks.filter(t => t.report?.status === 'gov').length;
+    document.getElementById('kpiProgress').textContent = allTasks.filter(t => t.report?.status === 'gov' || t.report?.status === 'reviewed').length;
     document.getElementById('kpiClosed').textContent = allTasks.filter(t => t.report?.status === 'closed').length;
   }
 
@@ -800,12 +801,14 @@
   function getStatusText(st) {
     if (st === 'hospital') return '待醫院回報';
     if (st === 'gov') return '待衛生局回報';
+    if (st === 'reviewed') return '待後台結案';
     if (st === 'closed') return '已結案';
     return '-';
   }
   function statusClass(st) {
     if (st === 'hospital') return 'status-pending';
     if (st === 'gov') return 'status-progress';
+    if (st === 'reviewed') return 'status-progress';
     if (st === 'closed') return 'status-closed';
     return 'status-pending';
   }

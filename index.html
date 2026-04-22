@@ -640,7 +640,7 @@
   window.saveGov = async function(dbId, caseId) {
     const note = document.getElementById('gov-' + caseId).value.trim();
     const { error } = await supabase.from('cases').update({
-      report_note: note, report_status: 'closed'
+      report_note: note, report_status: 'reviewed'
     }).eq('id', dbId);
     if (error) alert('儲存失敗：' + error.message);
   };
@@ -668,6 +668,9 @@
     const q = (document.getElementById('searchInput')?.value || '').trim().toLowerCase();
     const statusFilter = document.getElementById('statusFilter')?.value || '';
     let tasks = [...allTasks].filter(t => {
+      // 依使用者需求：結案後，案件平台就看不到這個病患訊息卡片
+      if (t.report?.status === 'closed') return false;
+
       const keywordHit = [t.id, t.name, t.cc, t.addr,
         t.hospital?.diagnosis || '', t.hospital?.reporter || '']
         .join(' ').toLowerCase().includes(q);
@@ -701,8 +704,8 @@
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
             <div class="timeline">
               <span class="step active">EMS 通報</span>
-              <span class="step ${t.report?.status === 'gov' || t.report?.status === 'closed' ? 'active' : ''}">醫院處置</span>
-              <span class="step ${t.report?.status === 'gov' || t.report?.status === 'closed' ? 'active' : ''}">衛生局</span>
+              <span class="step ${t.report?.status === 'gov' || t.report?.status === 'reviewed' || t.report?.status === 'closed' ? 'active' : ''}">醫院處置</span>
+              <span class="step ${t.report?.status === 'gov' || t.report?.status === 'reviewed' || t.report?.status === 'closed' ? 'active' : ''}">衛生局</span>
               <span class="step ${t.report?.status === 'closed' ? 'active' : ''}">結案</span>
             </div>
           </div>
@@ -748,7 +751,7 @@
   function updateKPI() {
     document.getElementById('kpiAll').textContent = allTasks.length;
     document.getElementById('kpiPending').textContent = allTasks.filter(t => t.report?.status === 'hospital').length;
-    document.getElementById('kpiProgress').textContent = allTasks.filter(t => t.report?.status === 'gov').length;
+    document.getElementById('kpiProgress').textContent = allTasks.filter(t => t.report?.status === 'gov' || t.report?.status === 'reviewed').length;
     document.getElementById('kpiClosed').textContent = allTasks.filter(t => t.report?.status === 'closed').length;
   }
 
@@ -791,14 +794,16 @@
   function getStatusText(st) {
     if (st === 'hospital') return '待醫院回報';
     if (st === 'gov') return '待衛生局回報';
+    if (st === 'reviewed') return '待後台結案';
     if (st === 'closed') return '結案';
     return '-';
   }
   function statusClass(st) {
     if (st === 'hospital') return 'status-pending';
     if (st === 'gov') return 'status-progress';
+    if (st === 'reviewed') return 'status-progress';
     if (st === 'closed') return 'status-closed';
-    return 'status-pending';
+    return '';
   }
   function escapeHtml(str) {
     return String(str).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
