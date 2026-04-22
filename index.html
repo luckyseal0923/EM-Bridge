@@ -6,7 +6,7 @@
   <title>EMS Bridge｜EMS-醫院個案銜接平台</title>
   <style>
     :root{
-      --primary:#b91c1c; --primary-dark:#991b1b; --primary-soft:#fee2e2;
+      --primary:#0284c7; --primary-dark:#0369a1; --primary-soft:#e0f2fe;
       --ems:#2563eb; --hospital:#059669;
       --bg:#f8fafc; --card:#ffffff; --text:#0f172a; --muted:#64748b;
       --border:#e2e8f0; --shadow:0 10px 30px rgba(15,23,42,.06);
@@ -22,7 +22,7 @@
 
     /* ===== Login Overlay ===== */
     #loginOverlay{
-      position:fixed; inset:0; background:linear-gradient(135deg,#1e293b,#0f172a);
+      position:fixed; inset:0; background:linear-gradient(135deg,#e0f2fe,#bae6fd);
       display:flex; align-items:center; justify-content:center; z-index:100;
     }
     .login-card{
@@ -34,18 +34,18 @@
       width:100%; border:1px solid #e2e8f0; border-radius:12px; padding:11px 12px;
       font-size:14px; outline:none; margin-bottom:12px; box-sizing:border-box;
     }
-    .login-card input:focus{ border-color:#fca5a5; box-shadow:0 0 0 4px rgba(220,38,38,.08); }
+    .login-card input:focus{ border-color:#7dd3fc; box-shadow:0 0 0 4px rgba(2,132,199,.15); }
     .login-btn{
-      width:100%; background:#b91c1c; color:#fff; border:none; border-radius:12px;
+      width:100%; background:var(--primary); color:#fff; border:none; border-radius:12px;
       padding:13px; font-size:15px; font-weight:700; cursor:pointer; margin-top:4px;
     }
-    .login-btn:hover{ background:#991b1b; }
-    .login-err{ color:#b91c1c; font-size:13px; margin-top:8px; display:none; }
+    .login-btn:hover{ background:var(--primary-dark); }
+    .login-err{ color:var(--primary); font-size:13px; margin-top:8px; display:none; }
     .login-ok{ color:#059669; font-size:13px; margin-top:8px; display:none; }
     .login-logo{ display:flex; align-items:center; gap:12px; margin-bottom:20px; }
     .login-logo-icon{
       width:44px; height:44px; border-radius:12px;
-      background:linear-gradient(135deg,#dc2626,#7f1d1d);
+      background:linear-gradient(135deg,#0ea5e9,#0284c7);
       display:flex; align-items:center; justify-content:center; color:#fff; font-size:22px;
     }
     .login-logo h1{ margin:0; font-size:20px; }
@@ -56,7 +56,7 @@
       color:#94a3b8; cursor:pointer; border-bottom:2px solid transparent;
       margin-bottom:-2px; transition:.2s;
     }
-    .auth-tab.active{ color:#b91c1c; border-bottom-color:#b91c1c; }
+    .auth-tab.active{ color:var(--primary); border-bottom-color:var(--primary); }
     .auth-panel{ display:none; }
     .auth-panel.active{ display:block; }
 
@@ -68,7 +68,7 @@
     .brand{ display:flex; align-items:center; gap:14px; }
     .brand-icon{
       width:48px; height:48px; border-radius:14px;
-      background:linear-gradient(135deg,#dc2626,#7f1d1d);
+      background:linear-gradient(135deg,#0ea5e9,#0284c7);
       display:flex; align-items:center; justify-content:center;
       color:#fff; font-size:24px; box-shadow:var(--shadow);
     }
@@ -105,14 +105,14 @@
       padding:11px 12px; font-size:14px; background:#fff; outline:none; transition:.2s; box-sizing:border-box;
     }
     input:focus, select:focus, textarea:focus{
-      border-color:#fca5a5; box-shadow:0 0 0 4px rgba(220,38,38,.08);
+      border-color:#7dd3fc; box-shadow:0 0 0 4px rgba(2,132,199,.15);
     }
     textarea{ resize:vertical; min-height:88px; max-width:100%; }
     button{ border:none; border-radius:12px; padding:11px 16px; cursor:pointer; font-size:14px; font-weight:600; transition:.2s; }
     .btn{ background:var(--primary); color:#fff; }
     .btn:hover{ background:var(--primary-dark); }
     .btn-outline{ background:#fff; color:var(--text); border:1px solid var(--border); }
-    .btn-soft{ background:#fff5f5; color:var(--primary); border:1px solid #fecaca; }
+    .btn-soft{ background:var(--primary-soft); color:var(--primary-dark); border:none; }
     .action-row{ display:flex; gap:10px; flex-wrap:wrap; margin-top:8px; }
 
     /* ===== Filters ===== */
@@ -126,7 +126,7 @@
     }
     .case-item:hover{ transform:translateY(-2px); box-shadow:0 10px 24px rgba(0,0,0,0.08); }
     .case-head{ padding:16px 18px; cursor:pointer; background:#ffffff; border-bottom:1px solid var(--border); }
-    .case-head.active{ background:#fef2f2; }
+    .case-head.active{ background:var(--primary-soft); }
     .case-head-top{ display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin-bottom:10px; }
     .case-id-wrap{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
     .case-id{ font-size:16px; font-weight:700; }
@@ -155,7 +155,7 @@
     .info-item .value{ font-size:14px; font-weight:600; line-height:1.5; }
     .timeline{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px; }
     .step{ padding:7px 10px; border-radius:999px; font-size:12px; border:1px solid var(--border); background:#fff; color:var(--muted); }
-    .step.active{ background:#fef2f2; color:var(--primary); border-color:#fecaca; font-weight:700; }
+    .step.active{ background:var(--primary-soft); color:var(--primary-dark); border-color:#ba86fc; border:1px solid var(--primary); font-weight:700; }
     .small{ font-size:12px; color:var(--muted); }
     .empty{ text-align:center; color:var(--muted); padding:32px 12px; }
     .ems-note{ max-height:80px; overflow:auto; line-height:1.5; }
@@ -165,7 +165,7 @@
     .loading-wrap{ text-align:center; padding:40px; color:var(--muted); }
     .spinner{
       width:32px; height:32px; border:3px solid #e2e8f0;
-      border-top-color:#b91c1c; border-radius:50%;
+      border-top-color:var(--primary); border-radius:50%;
       animation:spin .7s linear infinite; margin:0 auto 12px;
     }
     @keyframes spin{ to{ transform:rotate(360deg); } }
