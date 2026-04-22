@@ -252,7 +252,7 @@
   <!-- Tab Navigation -->
   <div class="tab-nav" id="mainTabNav">
     <button class="tab-btn active" id="tab-cases" onclick="switchMainTab('cases')">📋 案件管理</button>
-    <button class="tab-btn" id="tab-users" onclick="switchMainTab('users')" style="display:none;">👥 帳號管理</button>
+    <button class="tab-btn" id="tab-users" onclick="switchMainTab('users')">👥 帳號管理</button>
   </div>
 
   <!-- Platform Admin Only Notice -->
@@ -554,8 +554,8 @@
         document.getElementById('loginOverlay').style.display = 'none';
         document.getElementById('appContent').style.display = 'block';
 
-        // 根據權限決定是否顯示帳號管理分頁按鈕
-        document.getElementById('tab-users').style.display = (currentUserRole === 'platform_admin') ? 'inline-block' : 'none';
+        // 所有人進得來管理後台的都能看到分頁，但進去後會檢查權限
+        document.getElementById('tab-users').style.display = 'inline-block';
 
         const displayName = profile?.display_name || user.email;
         document.getElementById('authStatus').textContent = '✓ ' + displayName;
