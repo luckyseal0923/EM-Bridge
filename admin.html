@@ -7,13 +7,13 @@
   <style>
     :root{
       --primary:#b91c1c; --primary-dark:#991b1b;
-      --bg:#0f172a; --card:#1e293b; --card2:#162032;
-      --text:#f1f5f9; --muted:#94a3b8; --border:#334155;
-      --shadow:0 8px 24px rgba(0,0,0,0.3);
-      --pending-bg:#431407;--pending-text:#fb923c;--pending-border:#7c2d12;
-      --progress-bg:#0c236e;--progress-text:#93c5fd;--progress-border:#1e3a8a;
-      --done-bg:#052e16;--done-text:#86efac;--done-border:#166534;
-      --closed-bg:#1e293b;--closed-text:#94a3b8;--closed-border:#334155;
+      --bg:#f8fafc; --card:#ffffff; --card2:#f1f5f9;
+      --text:#0f172a; --muted:#64748b; --border:#e2e8f0;
+      --shadow:0 10px 25px -5px rgba(0,0,0,0.05), 0 8px 10px -6px rgba(0,0,0,0.01);
+      --pending-bg:#fff7ed;--pending-text:#ea580c;--pending-border:#ffedd5;
+      --progress-bg:#eff6ff;--progress-text:#2563eb;--progress-border:#dbeafe;
+      --done-bg:#f0fdf4;--done-text:#16a34a;--done-border:#dcfce7;
+      --closed-bg:#f8fafc;--closed-text:#64748b;--closed-border:#e2e8f0;
     }
     *, *::before, *::after{ box-sizing:border-box; }
     body{ margin:0; background:var(--bg); color:var(--text); min-height:100vh;
@@ -23,20 +23,20 @@
     /* ===== Login Overlay ===== */
     #loginOverlay{
       position:fixed; inset:0;
-      background:linear-gradient(135deg,#0f172a,#1e293b);
+      background:linear-gradient(135deg,#e2e8f0,#cbd5e1);
       display:flex; align-items:center; justify-content:center; z-index:100;
     }
     .login-card{
-      background:#1e293b; border:1px solid var(--border);
+      background:var(--card); border:1px solid var(--border);
       border-radius:24px; padding:40px 36px; width:380px;
-      box-shadow:0 30px 80px rgba(0,0,0,0.5);
+      box-shadow:var(--shadow);
     }
-    .login-card h2{ margin:0 0 6px; font-size:22px; color:#f1f5f9; }
+    .login-card h2{ margin:0 0 6px; font-size:22px; color:var(--text); }
     .login-card p{ margin:0 0 24px; font-size:13px; color:var(--muted); }
-    .login-card label{ display:block; font-size:13px; font-weight:600; color:#94a3b8; margin-bottom:6px; }
+    .login-card label{ display:block; font-size:13px; font-weight:600; color:var(--muted); margin-bottom:6px; }
     .login-card input{
-      width:100%; background:#0f172a; border:1px solid var(--border); border-radius:12px;
-      padding:12px; font-size:14px; color:#f1f5f9; outline:none; margin-bottom:14px; box-sizing:border-box;
+      width:100%; background:var(--bg); border:1px solid var(--border); border-radius:12px;
+      padding:12px; font-size:14px; color:var(--text); outline:none; margin-bottom:14px; box-sizing:border-box;
     }
     .login-card input:focus{ border-color:#b91c1c; box-shadow:0 0 0 4px rgba(185,28,28,.15); }
     .login-btn{
@@ -94,21 +94,21 @@
       align-items:center; margin-bottom:16px;
     }
     input[type="text"], input[type="search"], select{
-      background:#0f172a; border:1px solid var(--border); border-radius:12px;
-      padding:11px 14px; font-size:14px; color:#f1f5f9; outline:none; width:100%;
+      background:var(--card); border:1px solid var(--border); border-radius:12px;
+      padding:11px 14px; font-size:14px; color:var(--text); outline:none; width:100%;
     }
     input[type="text"]:focus, select:focus{ border-color:#dc2626; box-shadow:0 0 0 3px rgba(220,38,38,.1); }
 
     /* ===== Table ===== */
-    .table-wrapper{ overflow-x:auto; border-radius:18px; border:1px solid var(--border); box-shadow:var(--shadow); }
+    .table-wrapper{ overflow-x:auto; border-radius:18px; border:1px solid var(--border); box-shadow:var(--shadow); background:var(--card); }
     .table-wrapper table{ width:100%; border-collapse:collapse; min-width:900px; }
-    thead{ background:#162032; }
+    thead{ background:var(--card2); }
     thead th{ padding:14px 16px; text-align:left; font-size:13px; color:var(--muted); font-weight:600; white-space:nowrap; }
-    tbody tr{ border-bottom:1px solid #1e293b; cursor:pointer; transition:background .15s; }
+    tbody tr{ border-bottom:1px solid var(--border); cursor:pointer; transition:background .15s; }
     tbody tr:last-child{ border-bottom:none; }
-    tbody tr:hover{ background:rgba(255,255,255,.04); }
+    tbody tr:hover{ background:var(--card2); }
     tbody td{ padding:14px 16px; font-size:14px; vertical-align:middle; }
-    .id-cell{ font-weight:700; font-size:13px; color:#93c5fd; }
+    .id-cell{ font-weight:700; font-size:13px; color:#2563eb; }
     .hospital-cell{ font-size:12px; }
     .status-badge{ padding:5px 10px; border-radius:999px; font-size:12px; font-weight:700; }
     .status-pending{ background:var(--pending-bg); color:var(--pending-text); }
@@ -131,7 +131,7 @@
 
     /* ===== Drawer ===== */
     #drawerOverlay{
-      position:fixed; inset:0; background:rgba(0,0,0,.5);
+      position:fixed; inset:0; background:rgba(0,0,0,.25);
       display:none; z-index:50;
     }
     #drawer{
@@ -148,16 +148,16 @@
     }
     .drawer-title{ font-size:20px; font-weight:700; margin-bottom:4px; }
     .drawer-sub{ font-size:13px; color:var(--muted); margin-bottom:18px; }
-    .d-section{ background:var(--card2); border:1px solid var(--border); border-radius:14px; padding:14px; margin-bottom:14px; }
+    .d-section{ background:var(--bg); border:1px solid var(--border); border-radius:14px; padding:14px; margin-bottom:14px; }
     .d-section h4{ margin:0 0 10px; font-size:14px; color:var(--muted); }
     .d-row{ display:flex; gap:8px; margin-bottom:8px; }
     .d-label{ font-size:13px; color:var(--muted); min-width:100px; }
-    .d-val{ font-size:13px; font-weight:600; }
+    .d-val{ font-size:13px; font-weight:600; color:var(--text); }
     .d-btn-row{ display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; }
 
     /* ===== Export Modal ===== */
     #exportModal{
-      position:fixed; inset:0; background:rgba(0,0,0,.6);
+      position:fixed; inset:0; background:rgba(0,0,0,.25);
       display:none; align-items:center; justify-content:center; z-index:80;
     }
     .export-card{
@@ -173,7 +173,7 @@
 
     /* ===== Misc ===== */
     .loading-wrap{ text-align:center; padding:40px; color:var(--muted); }
-    .spinner{ width:32px; height:32px; border:3px solid #334155;
+    .spinner{ width:32px; height:32px; border:3px solid var(--border);
       border-top-color:#b91c1c; border-radius:50%;
       animation:spin .7s linear infinite; margin:0 auto 12px; }
     @keyframes spin{ to{ transform:rotate(360deg); } }
@@ -191,7 +191,7 @@
     <div class="logo-wrap">
       <div class="logo-icon">🛡️</div>
       <div>
-        <h3 style="margin:0;color:#f1f5f9;">EMS Bridge</h3>
+        <h3 style="margin:0;color:var(--text);">EMS Bridge</h3>
         <p style="margin:0;font-size:12px;color:var(--muted);">後臺管理系統</p>
       </div>
     </div>
