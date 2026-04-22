@@ -289,7 +289,17 @@
           </select>
         </div>
         <div><label>身分證字號</label><input id="pid" placeholder="例如：A123456789"></div>
-        <div class="full"><label>地址 / 居住地</label><input id="addr" placeholder="例如：新北市板橋區文化路一段XXX號"></div>
+        <div class="full">
+          <label>地址 / 居住地</label>
+          <div style="display:flex; gap:8px;">
+            <input id="addr" style="flex:1;" placeholder="例如：新北市板橋區文化路一段XXX號">
+            <button class="btn" style="width:auto; padding:0 15px;" id="btnLocate" onclick="autoFillVillage()">📍 定位里別</button>
+          </div>
+        </div>
+        <div>
+          <label>里別</label>
+          <input id="village" placeholder="由系統自動判定 (定位失敗可手動輸入)" readonly style="background:#f1f5f9;">
+        </div>
         <div><label>通報時間</label><input id="time" type="datetime-local"></div>
         <div class="full">
           <label>後送醫院</label>
@@ -601,6 +611,7 @@
       transport_hospital_code: hospitalCode || '',
       transport_hospital: hospitalCode === 'HA1' ? hospitalOther : hospitalCode,
       addr: addr || '未填地址',
+      village: document.getElementById('village').value.trim() || '',
       transport_time: time || '',
       cc: cc || '未填主訴',
       ems_note: emsNote || '',
@@ -613,10 +624,12 @@
     if (error) {
       alert('建立案件失敗：' + error.message);
     } else {
-      ['name','birth','pid','addr','time','cc','emsNote'].forEach(id => document.getElementById(id).value = '');
+      ['name','birth','pid','addr','village','time','cc','emsNote'].forEach(id => document.getElementById(id).value = '');
       document.getElementById('gender').value = '';
       document.getElementById('hospital').value = '';
       document.getElementById('hospitalOther').style.display = 'none';
+      document.getElementById('village').readOnly = true;
+      document.getElementById('village').style.background = '#f1f5f9';
     }
     btn.disabled = false; btn.textContent = '建立案件';
   };
@@ -771,6 +784,59 @@
     if (today.getMonth() < b.getMonth() || (today.getMonth() === b.getMonth() && today.getDate() < b.getDate())) age--;
     return age;
   }
+
+  // ===== Auto Village Locate =====
+  window.autoFillVillage = async function() {
+    const addr = document.getElementById('addr').value.trim();
+    if (!addr) { alert('請先輸入地址才能定位'); return; }
+    
+    // ⚠️ 這裡必填：請將下方 YOUR_GOOGLE_MAPS_API_KEY 替換成你剛剛申請的那串 AIza... 金鑰
+    const GOOGLE_API_KEY = 'YOUR_GOOGLE_MAPS_API_KEY';
+
+    const btn = document.getElementById('btnLocate');
+    const orgText = btn.textContent;
+    btn.textContent = '定位中...'; btn.disabled = true;
+    const vInput = document.getElementById('village');
+
+    try {
+      if (GOOGLE_API_KEY === 'YOUR_GOOGLE_MAPS_API_KEY') {
+        throw new Error('開發者尚未填寫 Google Maps API 金鑰於原始碼中');
+      }
+
+      // Step 1: 地址 -> 經緯度 (Google Maps)
+      const geoUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(addr)}&key=${GOOGLE_API_KEY}&language=zh-TW`;
+      const res = await fetch(geoUrl);
+      const data = await res.json();
+      
+      if (data.status !== 'OK' || !data.results.length) {
+        throw new Error('Google 無法解析此地址的座標');
+      }
+      const { lat, lng } = data.results[0].geometry.location;
+
+      // Step 2: 經緯度 -> 里別 (國土測繪圖資服務雲 NLSC API，免金鑰政府開放資料)
+      const nlscUrl = `https://api.nlsc.gov.tw/other/TownVillagePointQuery/${lng}/${lat}`;
+      const resNlsc = await fetch(nlscUrl);
+      const xmlText = await resNlsc.text();
+      
+      const parser = new DOMParser();
+      const xmlDoc = parser.parseFromString(xmlText, "text/xml");
+      const villageNode = xmlDoc.getElementsByTagName("villageName")[0];
+      
+      if (!villageNode) throw new Error('政府圖資無法從該座標反查到里別');
+      
+      vInput.value = villageNode.textContent;
+      vInput.readOnly = true;
+      vInput.style.background = '#f1f5f9';
+
+    } catch (err) {
+      alert('定位失敗：' + err.message + '\n\n您現在可以直接手動在欄位中打字輸入里別。');
+      vInput.readOnly = false; // 失敗時解鎖，允許手動輸入
+      vInput.style.background = '#fff';
+    } finally {
+      btn.textContent = orgText; btn.disabled = false;
+    }
+  };
+
   function maskName(name) {
     if (!name) return '';
     if (name.length === 1) return name + '○';
