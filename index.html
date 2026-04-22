@@ -299,16 +299,21 @@
         <div><label>身分證字號</label><input id="pid" placeholder="例如：A123456789"></div>
         <div class="full">
           <label>地址 / 居住地</label>
-          <div style="display:flex; gap:8px;">
-            <input id="addr" style="flex:1;" placeholder="例如：新北市板橋區文化路一段XXX號">
-            <button class="btn" style="width:auto; padding:0 15px;" id="btnLocate" onclick="autoFillVillage()">📍 定位里別</button>
+          <input id="addr" placeholder="例如：新北市板橋區文化路一段XXX號">
+        </div>
+        <div class="full">
+          <label>里別判定</label>
+          <div style="display:flex; gap:8px; align-items: flex-end;">
+            <button class="btn" style="width:auto; padding:0 20px; height:42px; white-space:nowrap;" id="btnLocate" onclick="autoFillVillage()">📍 定位里別</button>
+            <div style="flex:1;">
+              <input id="village" placeholder="由系統判定 (失敗時可手動輸入)" readonly style="background:#f1f5f9; margin-bottom:0;">
+            </div>
           </div>
         </div>
-        <div>
-          <label>里別</label>
-          <input id="village" placeholder="由系統自動判定 (定位失敗可手動輸入)" readonly style="background:#f1f5f9;">
+        <div class="full">
+          <label>通報時間</label>
+          <input id="time" type="datetime-local">
         </div>
-        <div><label>通報時間</label><input id="time" type="datetime-local"></div>
         <div class="full">
           <label>後送醫院</label>
           <select id="hospital" onchange="toggleOtherHospital()">
