@@ -335,6 +335,20 @@
   </div>
 </div>
 
+<!-- Registration Success Modal -->
+<div id="regSuccessModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:999;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:20px;padding:40px 36px;width:380px;max-width:92vw;box-shadow:0 24px 64px rgba(0,0,0,.3);text-align:center;animation:fadeInUp .35s ease;">
+    <div style="font-size:3rem;margin-bottom:12px;">✅</div>
+    <h2 style="margin:0 0 8px;font-size:1.3rem;color:#1e293b;">帳號註冊成功！</h2>
+    <p style="color:#64748b;font-size:.9rem;margin:0 0 28px;line-height:1.6;" id="regSuccessMsg">您的帳號已建立完成。</p>
+    <button id="autoLoginBtn" onclick="doAutoLogin()" style="width:100%;padding:14px;background:#dc2626;color:#fff;border:none;border-radius:10px;font-size:1rem;font-weight:700;cursor:pointer;letter-spacing:.5px;transition:background .2s;"
+      onmouseover="this.style.background='#b91c1c'" onmouseout="this.style.background='#dc2626'">
+      立即登入 →
+    </button>
+    <button onclick="closeRegSuccessModal()" style="margin-top:10px;width:100%;padding:11px;background:transparent;border:1px solid #e2e8f0;border-radius:10px;font-size:.9rem;color:#64748b;cursor:pointer;">稍後再登入</button>
+  </div>
+</div>
+
 <!-- Supabase SDK -->
 <script type="module">
   import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
@@ -393,9 +407,33 @@
       const msg = error.message.includes('already') ? '此 Email 已被註冊，請直接登入' : '註冊失敗：' + error.message;
       showRegErr(msg);
     } else {
-      okEl.textContent = '✓ 帳號建立成功！若需要 Email 驗證請至信箱點擊連結，否則直接切換至登入。';
-      okEl.style.display = 'block';
+      // 暫存登入資訊，顯示成功彈窗
+      _pendingEmail = email; _pendingPw = pw;
+      document.getElementById('regSuccessMsg').textContent =
+        `您的帳號「${name || email}」已建立完成！`;
+      document.getElementById('regSuccessModal').style.display = 'flex';
     }
+  };
+
+  let _pendingEmail = ''; let _pendingPw = '';
+
+  window.doAutoLogin = async function() {
+    const btn = document.getElementById('autoLoginBtn');
+    btn.textContent = '登入中…'; btn.disabled = true;
+    const { error } = await supabase.auth.signInWithPassword({
+      email: _pendingEmail, password: _pendingPw
+    });
+    if (error) {
+      btn.textContent = '登入失敗，請手動登入'; btn.disabled = false;
+    } else {
+      closeRegSuccessModal();
+    }
+  };
+
+  window.closeRegSuccessModal = function() {
+    document.getElementById('regSuccessModal').style.display = 'none';
+    _pendingEmail = ''; _pendingPw = '';
+    switchAuthTab('login');
   };
 
 
