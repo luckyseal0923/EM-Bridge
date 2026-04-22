@@ -440,13 +440,7 @@
   // ===== Supabase Config =====
   const SUPABASE_URL = 'https://pqrvqwobvqjhbnvjksbb.supabase.co';
   const SUPABASE_KEY = 'sb_publishable_KCjTHB1Wgm8P0t2TyzDsmw_3dZncrBf';
-  const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
-    auth: {
-      storage: window.sessionStorage, // 關閉瀏覽器即登出，徹底解決 LocalStorage 卡死與跨分頁衝突的 Bug
-      autoRefreshToken: true,
-      persistSession: true
-    }
-  });
+  const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
   // ===== State =====
   let allTasks = [];
