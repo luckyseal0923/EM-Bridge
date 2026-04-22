@@ -543,6 +543,7 @@
       gender: r.gender,
       pid: r.pid,
       addr: r.addr,
+      village: r.village,
       time: r.transport_time,
       transportHospital: r.transport_hospital,
       cc: r.cc,
@@ -689,7 +690,7 @@
         <div class="d-row"><div class="d-label">出生日期</div><div class="d-val">${t.birth || '-'}</div></div>
         <div class="d-row"><div class="d-label">性別</div><div class="d-val">${formatGender(t.gender)}</div></div>
         <div class="d-row"><div class="d-label">身分證號</div><div class="d-val">${t.pid ? maskPID(t.pid) : '-'}</div></div>
-        <div class="d-row"><div class="d-label">地址</div><div class="d-val">${t.addr || '-'}</div></div>
+        <div class="d-row"><div class="d-label">地址 / 里別</div><div class="d-val">${t.addr || '-'}${t.village ? ' (' + t.village + ')' : ''}</div></div>
         <div class="d-row"><div class="d-label">主訴</div><div class="d-val">${t.cc || '-'}</div></div>
         <div class="d-row"><div class="d-label">後送醫院</div><div class="d-val">${formatHospital(t.transportHospital)}</div></div>
         <div class="d-row"><div class="d-label">通報時間</div><div class="d-val">${formatDateTime(t.time)}</div></div>
@@ -746,6 +747,7 @@
       { id:'exp-birth',   key:'birth',             label:'出生日期' },
       { id:'exp-pid',     key:'pid',               label:'身分證號' },
       { id:'exp-addr',    key:'addr',              label:'地址' },
+      { id:'exp-village', key:'village',           label:'里別' },
       { id:'exp-time',    key:'time',              label:'通報時間' },
       { id:'exp-cc',      key:'cc',                label:'主訴' },
       { id:'exp-hospital',key:'transportHospital', label:'後送醫院' },

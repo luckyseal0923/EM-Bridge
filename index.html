@@ -563,6 +563,7 @@
       gender: r.gender,
       pid: r.pid,
       addr: r.addr,
+      village: r.village,
       time: r.transport_time,
       transportHospitalCode: r.transport_hospital_code,
       transportHospital: r.transport_hospital,
@@ -727,7 +728,7 @@
               <div class="panel-title"><h3>院前資訊（EMS）</h3><span class="role-badge role-ems">EMS</span></div>
               <div class="info-list">
                 <div class="info-item"><div class="label">基本資訊</div><div class="value">${t.birth || '-'} ｜ ${formatGender(t.gender)} ｜ ${t.pid ? maskPID(t.pid) : '-'}</div></div>
-                <div class="info-item"><div class="label">地址 / 里別</div><div class="value">${t.addr || '-'}</div></div>
+                <div class="info-item"><div class="label">地址 / 里別</div><div class="value">${t.addr || '-'} ${t.village ? '(' + t.village + ')' : ''}</div></div>
                 <div class="info-item"><div class="label">EMS 現場補充</div><div class="value ems-note">${t.emsNote || '無'}</div></div>
               </div>
             </div>
