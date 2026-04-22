@@ -778,7 +778,23 @@
       hosp_disposition: disposition, hosp_reporter: reporter,
       hosp_updated_at: getNowText(), report_status: newStatus
     }).eq('id', dbId);
-    if (error) alert('儲存失敗：' + error.message);
+    
+    if (error) {
+      alert('儲存失敗：' + error.message);
+    } else {
+      // 立即更新本地狀態，確保 UI 反應順暢
+      const t = allTasks.find(x => x.dbId === dbId);
+      if (t) {
+        t.hospital.diagnosis = diagnosis;
+        t.hospital.treatment = treatment;
+        t.hospital.disposition = disposition;
+        t.hospital.reporter = reporter;
+        t.hospital.updatedAt = getNowText();
+        t.report.status = newStatus;
+      }
+      alert('儲存成功！');
+      window.render();
+    }
   };
 
   // ===== Save Gov Report =====
@@ -787,7 +803,32 @@
     const { error } = await supabase.from('cases').update({
       report_note: note, report_status: 'reviewed'
     }).eq('id', dbId);
-    if (error) alert('儲存失敗：' + error.message);
+    
+    if (error) {
+      alert('儲存失敗：' + error.message);
+    } else {
+      const t = allTasks.find(x => x.dbId === dbId);
+      if (t) {
+        t.report.note = note;
+        t.report.status = 'reviewed';
+      }
+      alert('儲存成功！');
+      window.render();
+    }
+  };
+
+  // ===== Unlock Fields =====
+  window.unlockHosp = function(caseId, dbId) {
+    if (!confirm('確定要重新開啟編輯模式嗎？\n(為求時效，無需重新輸入密碼)')) return;
+    ['diag-', 'treat-', 'reporter-'].forEach(prefix => document.getElementById(prefix + caseId).readOnly = false);
+    document.getElementById('disp-' + caseId).disabled = false;
+    document.getElementById('hospAction-' + caseId).innerHTML = `<div class="action-row"><button class="btn" onclick="saveHospital('${dbId}', '${caseId}')">儲存更新</button></div>`;
+  };
+
+  window.unlockGov = function(caseId, dbId) {
+    if (!confirm('確定要重新開啟編輯模式嗎？\n(為求時效，無需重新輸入密碼)')) return;
+    document.getElementById('gov-' + caseId).readOnly = false;
+    document.getElementById('govAction-' + caseId).innerHTML = `<div class="action-row"><button class="btn" onclick="saveGov('${dbId}', '${caseId}')">儲存更新</button></div>`;
   };
 
   // ===== Toggle Case =====
@@ -866,9 +907,9 @@
             <div class="panel">
               <div class="panel-title"><h3>醫院端回報</h3><span class="role-badge role-hospital">醫院</span></div>
               <label>初步診斷 / 問題摘要</label>
-              <input id="diag-${t.id}" value="${escapeHtml(t.hospital?.diagnosis || '')}" placeholder="例如：肺炎、頭部外傷、低血糖" />
-              <textarea id="treat-${t.id}" placeholder="例如：已完成抽血、影像檢查、藥物治療與後續處置">${escapeHtml(t.hospital?.treatment || '')}</textarea>
-              <select id="disp-${t.id}">
+              <input id="diag-${t.id}" value="${escapeHtml(t.hospital?.diagnosis || '')}" placeholder="例如：肺炎、頭部外傷、低血糖" ${t.report?.status !== 'hospital' && t.hospital?.updatedAt ? 'readonly' : ''} />
+              <textarea id="treat-${t.id}" placeholder="例如：已完成抽血、影像檢查、藥物治療與後續處置" ${t.report?.status !== 'hospital' && t.hospital?.updatedAt ? 'readonly' : ''}>${escapeHtml(t.hospital?.treatment || '')}</textarea>
+              <select id="disp-${t.id}" ${t.report?.status !== 'hospital' && t.hospital?.updatedAt ? 'disabled' : ''}>
                 <option value="" ${!t.hospital?.disposition ? 'selected' : ''}>請選擇醫療端動向</option>
                 <option value="急診留觀" ${t.hospital?.disposition === '急診留觀' ? 'selected' : ''}>急診留觀</option>
                 <option value="辦理住院" ${t.hospital?.disposition === '辦理住院' ? 'selected' : ''}>辦理住院</option>
@@ -876,16 +917,34 @@
                 <option value="轉至HAH" ${t.hospital?.disposition === '轉至HAH' ? 'selected' : ''}>轉至HAH</option>
                 <option value="出院返家" ${t.hospital?.disposition === '出院返家' ? 'selected' : ''}>出院返家</option>
               </select>
-              <input id="reporter-${t.id}" value="${escapeHtml(t.hospital?.reporter || '')}" placeholder="例如：急診醫師、急診護理師" />
+              <input id="reporter-${t.id}" value="${escapeHtml(t.hospital?.reporter || '')}" placeholder="例如：急診醫師、急診護理師" ${t.report?.status !== 'hospital' && t.hospital?.updatedAt ? 'readonly' : ''} />
               <div class="small">最後更新：${t.hospital?.updatedAt || '尚未填寫醫療端回報'}</div>
-              <div class="action-row"><button class="btn" onclick="saveHospital('${t.dbId}', '${t.id}')">儲存醫院回報</button></div>
+              <div id="hospAction-${t.id}">
+                ${(t.report?.status !== 'hospital' && t.hospital?.updatedAt) ? `
+                  <div class="action-row" style="justify-content:flex-start; align-items:center; gap:12px;">
+                    <span style="color:#16a34a; font-weight:700; font-size:14px;">✅ 已完成回報</span>
+                    <button class="btn-outline" style="padding:6px 12px; font-size:12px;" onclick="unlockHosp('${t.id}', '${t.dbId}')">重新編輯</button>
+                  </div>
+                ` : `
+                  <div class="action-row"><button class="btn" onclick="saveHospital('${t.dbId}', '${t.id}')">儲存醫院回報</button></div>
+                `}
+              </div>
             </div>
             <div class="panel">
               <div class="panel-title"><h3>衛生局回報</h3><span class="role-badge" style="background:#fef3c7;color:#92400e;">衛生局</span></div>
               <label>衛生局回報內容</label>
-              <textarea id="gov-${t.id}" placeholder="例如：已電話追蹤、安排家訪、提供衛教與資源轉介">${escapeHtml(t.report?.note || '')}</textarea>
+              <textarea id="gov-${t.id}" placeholder="例如：已電話追蹤、安排家訪、提供衛教與資源轉介" ${t.report?.status === 'reviewed' || t.report?.status === 'closed' ? 'readonly' : ''}>${escapeHtml(t.report?.note || '')}</textarea>
               <div class="small">狀態：${getStatusText(t.report?.status)}${!t.report?.note ? '｜尚未填寫衛生所回報' : ''}</div>
-              <div class="action-row"><button class="btn" onclick="saveGov('${t.dbId}', '${t.id}')">儲存衛生局回報</button></div>
+              <div id="govAction-${t.id}">
+                ${(t.report?.status === 'reviewed' || t.report?.status === 'closed') ? `
+                  <div class="action-row" style="justify-content:flex-start; align-items:center; gap:12px;">
+                    <span style="color:#16a34a; font-weight:700; font-size:14px;">✅ 已完成回報</span>
+                    <button class="btn-outline" style="padding:6px 12px; font-size:12px;" onclick="unlockGov('${t.id}', '${t.dbId}')">重新編輯</button>
+                  </div>
+                ` : `
+                  <div class="action-row"><button class="btn" onclick="saveGov('${t.dbId}', '${t.id}')">儲存衛生局回報</button></div>
+                `}
+              </div>
             </div>
           </div>
         </div>

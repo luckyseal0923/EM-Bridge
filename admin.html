@@ -608,6 +608,64 @@
     };
   }
 
+  function getNowText() {
+    const d = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  }
+  function escapeHtml(str) {
+    return String(str || '').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  // ===== Save Actions (Admin) =====
+  window.saveHospitalAdmin = async function(dbId, caseId) {
+    const diag = document.getElementById('drawer-diag').value.trim();
+    const treat = document.getElementById('drawer-treat').value.trim();
+    const disp = document.getElementById('drawer-disp').value;
+    const rep = document.getElementById('drawer-rep').value.trim();
+    const { error } = await supabase.from('cases').update({
+      hosp_diagnosis: diag, hosp_treatment: treat,
+      hosp_disposition: disp, hosp_reporter: rep,
+      hosp_updated_at: getNowText()
+    }).eq('id', dbId);
+    if (error) { alert('儲存失敗：' + error.message); }
+    else {
+      const t = allTasks.find(x => x.dbId === dbId);
+      if (t) {
+        t.hospital.diagnosis = diag; t.hospital.treatment = treat;
+        t.hospital.disposition = disp; t.hospital.reporter = rep;
+        t.hospital.updatedAt = getNowText();
+      }
+      alert('儲存醫院回報成功！');
+      openDrawer(dbId); // 刷新 Drawer
+    }
+  };
+
+  window.saveGovAdmin = async function(dbId, caseId) {
+    const note = document.getElementById('drawer-gov-note').value.trim();
+    const { error } = await supabase.from('cases').update({
+      report_note: note, report_status: 'reviewed'
+    }).eq('id', dbId);
+    if (error) { alert('儲存失敗：' + error.message); }
+    else {
+      const t = allTasks.find(x => x.dbId === dbId);
+      if (t) { t.report.note = note; t.report.status = 'reviewed'; }
+      alert('儲存衛生局回報成功！');
+      openDrawer(dbId);
+    }
+  };
+
+  window.unlockHospAdmin = function(dbId) {
+    if (!confirm('確定要編輯此回報？')) return;
+    document.getElementById('drawer-hosp-view').style.display = 'none';
+    document.getElementById('drawer-hosp-edit').style.display = 'block';
+  };
+  window.unlockGovAdmin = function(dbId) {
+    if (!confirm('確定要編輯此回報？')) return;
+    document.getElementById('drawer-gov-view').style.display = 'none';
+    document.getElementById('drawer-gov-edit').style.display = 'block';
+  };
+
   // ===== Filters =====
   function buildMonthFilter() {
     const months = new Set();
@@ -732,31 +790,59 @@
     document.getElementById('drawerContent').innerHTML = `
       <div class="drawer-title">${t.id}</div>
       <div class="drawer-sub">${getStatusText(t.report?.status)} ｜ 建立者：${t.createdByEmail || '-'}</div>
+      
       <div class="d-section">
         <h4>EMS 院前資訊</h4>
         <div class="d-row"><div class="d-label">病患姓名</div><div class="d-val">${maskName(t.name)}</div></div>
-        <div class="d-row"><div class="d-label">出生日期</div><div class="d-val">${t.birth || '-'}</div></div>
-        <div class="d-row"><div class="d-label">性別</div><div class="d-val">${formatGender(t.gender)}</div></div>
-        <div class="d-row"><div class="d-label">身分證號</div><div class="d-val">${t.pid ? maskPID(t.pid) : '-'}</div></div>
+        <div class="d-row"><div class="d-label">通報時間</div><div class="d-val">${formatDateTime(t.time)}</div></div>
         <div class="d-row"><div class="d-label">地址 / 里別</div><div class="d-val">${t.addr || '-'}${t.village ? ' (' + t.village + ')' : ''}</div></div>
         <div class="d-row"><div class="d-label">主訴</div><div class="d-val">${t.cc || '-'}</div></div>
         <div class="d-row"><div class="d-label">後送醫院</div><div class="d-val">${formatHospital(t.transportHospital)}</div></div>
-        <div class="d-row"><div class="d-label">通報時間</div><div class="d-val">${formatDateTime(t.time)}</div></div>
         <div class="d-row"><div class="d-label">EMS 補充</div><div class="d-val" style="line-height:1.6;">${t.emsNote || '無'}</div></div>
       </div>
+
       <div class="d-section">
-        <h4>醫院端回報</h4>
-        <div class="d-row"><div class="d-label">診斷</div><div class="d-val">${t.hospital?.diagnosis || '未回報'}</div></div>
-        <div class="d-row"><div class="d-label">治療</div><div class="d-val">${t.hospital?.treatment || '未回報'}</div></div>
-        <div class="d-row"><div class="d-label">動向</div><div class="d-val">${t.hospital?.disposition || '未回報'}</div></div>
-        <div class="d-row"><div class="d-label">回報者</div><div class="d-val">${t.hospital?.reporter || '-'}</div></div>
-        <div class="d-row"><div class="d-label">更新時間</div><div class="d-val">${t.hospital?.updatedAt || '-'}</div></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+          <h4 style="margin:0;">醫院端回報</h4>
+          ${t.hospital?.updatedAt ? '<span style="color:#16a34a;font-size:12px;font-weight:700;">✅ 已完成</span>' : ''}
+        </div>
+        <div id="drawer-hosp-view" style="display:${t.hospital?.updatedAt ? 'block' : 'none'};">
+          <div class="d-row"><div class="d-label">診斷</div><div class="d-val">${t.hospital?.diagnosis || '-'}</div></div>
+          <div class="d-row"><div class="d-label">動向</div><div class="d-val">${t.hospital?.disposition || '-'}</div></div>
+          <div class="d-row"><div class="d-label">回報者</div><div class="d-val">${t.hospital?.reporter || '-'}</div></div>
+          <div class="d-row"><div class="d-label">更新時間</div><div class="d-val" style="font-size:11px;">${t.hospital?.updatedAt || '-'}</div></div>
+          <button class="btn-outline" style="margin-top:10px;width:100%;padding:6px;font-size:12px;" onclick="unlockHospAdmin('${t.dbId}')">編輯醫院回報</button>
+        </div>
+        <div id="drawer-hosp-edit" style="display:${t.hospital?.updatedAt ? 'none' : 'block'};">
+          <input id="drawer-diag" value="${escapeHtml(t.hospital?.diagnosis)}" placeholder="初步診斷" style="width:100%;margin-bottom:8px;padding:8px;border:1px solid var(--border);border-radius:8px;" />
+          <textarea id="drawer-treat" placeholder="處置與治療細節" style="width:100%;margin-bottom:8px;padding:8px;border:1px solid var(--border);border-radius:8px;min-height:60px;">${escapeHtml(t.hospital?.treatment)}</textarea>
+          <select id="drawer-disp" style="width:100%;margin-bottom:8px;padding:8px;border:1px solid var(--border);border-radius:8px;">
+            <option value="">請選擇動向</option>
+            <option value="急診留觀" ${t.hospital?.disposition === '急診留觀' ? 'selected' : ''}>急診留觀</option>
+            <option value="辦理住院" ${t.hospital?.disposition === '辦理住院' ? 'selected' : ''}>辦理住院</option>
+            <option value="轉至他院" ${t.hospital?.disposition === '轉至他院' ? 'selected' : ''}>轉至他院</option>
+            <option value="出院返家" ${t.hospital?.disposition === '出院返家' ? 'selected' : ''}>出院返家</option>
+          </select>
+          <input id="drawer-rep" value="${escapeHtml(t.hospital?.reporter)}" placeholder="回報人員" style="width:100%;margin-bottom:12px;padding:8px;border:1px solid var(--border);border-radius:8px;" />
+          <button class="btn-outline" style="width:100%;background:var(--primary);color:#fff;border:none;" onclick="saveHospitalAdmin('${t.dbId}', '${t.id}')">儲存醫院回報</button>
+        </div>
       </div>
+
       <div class="d-section">
-        <h4>衛生局回報</h4>
-        <div class="d-row"><div class="d-label">狀態</div><div class="d-val">${getStatusText(t.report?.status)}</div></div>
-        <div class="d-row"><div class="d-label">回報內容</div><div class="d-val">${t.report?.note || '未填寫'}</div></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+          <h4 style="margin:0;">衛生局回報</h4>
+          ${t.report?.status === 'reviewed' || t.report?.status === 'closed' ? '<span style="color:#16a34a;font-size:12px;font-weight:700;">✅ 已完成</span>' : ''}
+        </div>
+        <div id="drawer-gov-view" style="display:${t.report?.status === 'reviewed' || t.report?.status === 'closed' ? 'block' : 'none'};">
+          <div class="d-row"><div class="d-label">回報內容</div><div class="d-val">${t.report?.note || '-'}</div></div>
+          <button class="btn-outline" style="margin-top:10px;width:100%;padding:6px;font-size:12px;" onclick="unlockGovAdmin('${t.dbId}')">編輯衛生局回報</button>
+        </div>
+        <div id="drawer-gov-edit" style="display:${t.report?.status === 'reviewed' || t.report?.status === 'closed' ? 'none' : 'block'};">
+          <textarea id="drawer-gov-note" placeholder="衛生局處理記錄..." style="width:100%;margin-bottom:12px;padding:8px;border:1px solid var(--border);border-radius:8px;min-height:80px;">${escapeHtml(t.report?.note)}</textarea>
+          <button class="btn-outline" style="width:100%;background:var(--primary);color:#fff;border:none;" onclick="saveGovAdmin('${t.dbId}', '${t.id}')">儲存衛生局回報</button>
+        </div>
       </div>
+
       <div class="d-btn-row">
         <button class="btn-warning" onclick="closeSingleCase('${t.dbId}')">結案</button>
         <button class="btn-danger" onclick="deleteSingleCase('${t.dbId}')">刪除</button>
