@@ -312,7 +312,10 @@
         </div>
         <div class="full">
           <label>通報時間</label>
-          <input id="time" type="datetime-local">
+          <div style="display:flex; gap:8px;">
+            <input id="time" type="datetime-local" style="flex:1; margin-bottom:0;">
+            <button class="btn-soft" style="width:auto; padding:0 20px; height:42px; white-space:nowrap;" onclick="setNowTime()">現在</button>
+          </div>
         </div>
         <div class="full">
           <label>後送醫院</label>
@@ -475,6 +478,13 @@
 
   window.goAdmin = function() {
     window.location.href = 'admin.html';
+  };
+
+  window.setNowTime = function() {
+    const d = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    const localStr = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    document.getElementById('time').value = localStr;
   };
 
   // ===== Register =====
