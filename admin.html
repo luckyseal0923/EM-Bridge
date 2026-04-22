@@ -538,6 +538,7 @@
       // 🚀 [修正] 快速切換：只要偵測到基本 User 資訊，立即嘗試隱藏登入遮罩，避免重整時的大閃爍
       document.getElementById('loginOverlay').style.display = 'none';
       document.getElementById('appContent').style.display = 'block';
+      document.getElementById('authStatus').textContent = '⌛ 驗證中...';
 
       try {
         const { data: profile, error } = await supabase

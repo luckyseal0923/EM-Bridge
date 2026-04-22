@@ -640,6 +640,7 @@
       // 🚀 [修正] 快速隱入：只要有 User，先隱藏登入框，讓使用者不會覺得被踢出去
       document.getElementById('loginOverlay').style.display = 'none';
       document.getElementById('appContent').style.display = 'block';
+      document.getElementById('authStatus').textContent = '⌛ 驗證中...';
 
       try {
         const { data: profile, error } = await supabase
