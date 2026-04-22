@@ -396,6 +396,20 @@
   let currentUser = null;
   let realtimeChannel = null;
 
+  // ===== Auto-Heal Seamless Re-Login =====
+  setTimeout(() => {
+    const healEmail = window.sessionStorage.getItem('auto_heal_email');
+    const healPwd = window.sessionStorage.getItem('auto_heal_pwd');
+    if (healEmail && healPwd) {
+      window.sessionStorage.removeItem('auto_heal_email');
+      window.sessionStorage.removeItem('auto_heal_pwd');
+      document.getElementById('loginEmail').value = healEmail;
+      document.getElementById('loginPassword').value = healPwd;
+      console.log('🔄 Auto-heal triggered. Attempting seamless login...');
+      if (typeof doLogin === 'function') doLogin();
+    }
+  }, 500);
+
   // ===== Auth =====
   window.doLogin = async function() {
     const email = document.getElementById('loginEmail').value.trim();
@@ -421,9 +435,11 @@
       }
     } catch (err) {
       console.warn("發生無限迴圈死鎖，系統強制清除病灶:", err);
-      showLoginErr('系統正在清除卡死的快取，將為您重新載入...');
+      showLoginErr('系統正在清除卡死的快取，將為您重新載入... 隨後將自動為您登入！');
       window.localStorage.clear();
-      window.sessionStorage.clear();
+      // 暫存帳號密碼，供重新載入後自動登入使用
+      window.sessionStorage.setItem('auto_heal_email', email);
+      window.sessionStorage.setItem('auto_heal_pwd', password);
       setTimeout(() => window.location.reload(), 1500);
     }
   };
