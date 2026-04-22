@@ -455,15 +455,25 @@
     const errEl = document.getElementById('loginErr');
     errEl.style.display = 'none';
     if (!email || !password) { showLoginErr('請輸入帳號與密碼'); return; }
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
-      showLoginErr(error.message.includes('Invalid') ? '帳號或密碼錯誤' : '登入失敗：' + error.message);
+    try {
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) {
+        showLoginErr(error.message.includes('Invalid') ? '帳號或密碼錯誤' : '登入失敗：' + error.message);
+      }
+    } catch (err) {
+      console.error(err);
+      showLoginErr('發生跨分頁干擾，系統即將為您重新載入以恢復登入狀態...');
+      setTimeout(() => window.location.reload(), 1500);
     }
   };
 
   window.doLogout = async function() {
     if (realtimeChannel) supabase.removeChannel(realtimeChannel);
-    await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut();
+    } catch(err) {
+      window.location.reload();
+    }
   };
 
   function showLoginErr(msg) {
