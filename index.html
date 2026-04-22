@@ -664,10 +664,9 @@
 
         if (!realtimeChannel) subscribeToTasks();
       } catch (err) {
-        console.warn("連線或權限過期，自動清除快取...", err);
-        await supabase.auth.signOut();
-        window.localStorage.clear();
-        window.location.reload();
+        console.warn("驗證個案身分時發生錯誤 (可能為暫時性網路問題):", err);
+        // 不再激進地直接登出並清空快取，保留 session 嘗試下次連線
+        document.getElementById('authStatus').textContent = '⚠️ 連線不穩定';
       }
     } else {
       document.getElementById('loginOverlay').style.display = 'flex';
@@ -1088,7 +1087,7 @@
     if (st === 'hospital') return '待醫院回報';
     if (st === 'gov') return '待衛生局回報';
     if (st === 'reviewed') return '待後台結案';
-    if (st === 'closed') return '結案';
+    if (st === 'closed') return '已結案';
     return '-';
   }
   function statusClass(st) {

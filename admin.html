@@ -561,10 +561,9 @@
         document.getElementById('authStatus').textContent = '✓ ' + displayName;
         if (!realtimeChannel) subscribeToTasks();
       } catch (err) {
-        console.warn("連線或權限過期，自動清除快取...", err);
-        await supabase.auth.signOut();
-        window.localStorage.clear();
-        window.location.reload();
+        console.warn("驗證權限時發生錯誤 (可能為暫時性網路問題):", err);
+        // 不再激進地直接登出並清空快取，保留 session 嘗試下次連線
+        document.getElementById('authStatus').textContent = '⚠️ 權限驗證延遲';
       }
     } else {
       document.getElementById('loginOverlay').style.display = 'flex';
