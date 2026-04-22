@@ -470,7 +470,9 @@
         .from('profiles').select('is_active, display_name, role')
         .eq('id', currentUser.id).single();
       if (profile && !profile.is_active) {
-        await supabase.auth.signOut();
+        document.getElementById('loginOverlay').style.display = 'flex';
+        document.getElementById('appContent').style.display = 'none';
+        if (realtimeChannel) { supabase.removeChannel(realtimeChannel); realtimeChannel = null; }
         showLoginErr('此帳號已被停用，請聯絡管理員');
         return;
       }

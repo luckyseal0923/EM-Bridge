@@ -479,8 +479,10 @@
         .eq('id', user.id).single();
 
       if (!profile || !profile.is_active || profile.role !== 'admin') {
-        await supabase.auth.signOut();
-        showLoginErr('權限不足，此頁面僅限管理員登入。已停用帳號或非管理員會被登出。');
+        document.getElementById('loginOverlay').style.display = 'flex';
+        document.getElementById('appContent').style.display = 'none';
+        if (realtimeChannel) { supabase.removeChannel(realtimeChannel); realtimeChannel = null; }
+        showLoginErr('權限不足，此為管理員專用頁面。請使用管理員帳號登入。');
         return;
       }
 
