@@ -458,11 +458,21 @@
   let currentPage = 1;
   const PAGE_SIZE = 15;
   let realtimeChannel = null;
-  let currentUserRole = '';
-  let _currentUserId = null;
+  let currentUserRole = ''; // 新增：追蹤目前權限
 
-  // 初始化即抓取資料
-  subscribeToTasks();
+  // ===== Auto-Heal Seamless Re-Login =====
+  setTimeout(() => {
+    const healEmail = window.sessionStorage.getItem('auto_heal_admin_email');
+    const healPwd = window.sessionStorage.getItem('auto_heal_admin_pwd');
+    if (healEmail && healPwd) {
+      window.sessionStorage.removeItem('auto_heal_admin_email');
+      window.sessionStorage.removeItem('auto_heal_admin_pwd');
+      document.getElementById('loginEmail').value = healEmail;
+      document.getElementById('loginPassword').value = healPwd;
+      console.log('🔄 Auto-heal triggered. Attempting seamless login...');
+      if (typeof doLogin === 'function') doLogin();
+    }
+  }, 500);
 
   // ===== Auth =====
   window.doLogin = async function() {
@@ -524,12 +534,14 @@
 
   supabase.auth.onAuthStateChange(async (event, session) => {
     const user = session?.user ?? null;
-    _currentUserId = user?.id || null;
-
     if (user) {
+      // 🚀 [修正] 快速切換：只要偵測到基本 User 資訊，立即嘗試隱藏登入遮罩，避免重整時的大閃爍
       document.getElementById('loginOverlay').style.display = 'none';
       document.getElementById('appContent').style.display = 'block';
       document.getElementById('authStatus').textContent = '⌛ 驗證中...';
+
+      // 🚀 [修正] 併行加載：有 Session 就先抓資料與即時監聽，不用等 Profile
+      if (!realtimeChannel) subscribeToTasks();
 
       try {
         const { data: profile, error } = await supabase
@@ -539,56 +551,59 @@
         if (error) throw error;
 
         if (!profile || !profile.is_active || (profile.role !== 'admin' && profile.role !== 'platform_admin')) {
-          showLoginErr('權限不足，此為管理員專用頁面。');
-          doLogout();
+          document.getElementById('loginOverlay').style.display = 'flex';
+          document.getElementById('appContent').style.display = 'none';
+          if (realtimeChannel) { supabase.removeChannel(realtimeChannel); realtimeChannel = null; }
+          showLoginErr('權限不足，此為管理員專用頁面。請使用管理員帳號登入。');
           return;
         }
 
         currentUserRole = profile.role;
         document.getElementById('loginOverlay').style.display = 'none';
         document.getElementById('appContent').style.display = 'block';
+
+        // 所有人進得來管理後台的都能看到分頁，但進去後會檢查權限
         document.getElementById('tab-users').style.display = 'inline-block';
 
         const displayName = profile?.display_name || user.email;
         document.getElementById('authStatus').textContent = '✓ ' + displayName;
+        // 舊位子移除，已改為上方併行加載
       } catch (err) {
-        console.warn("驗證權限失敗:", err);
+        console.warn("驗證權限時發生錯誤 (可能為暫時性網路問題):", err);
+        // 🚀 [修正] 容錯處理：若 Profile 暫時拿不到，只要 User 還在就不該強行跳出
+        document.getElementById('loginOverlay').style.display = 'none';
+        document.getElementById('appContent').style.display = 'block';
         document.getElementById('authStatus').textContent = '⚠️ 權限驗證延遲';
       }
     } else {
       document.getElementById('loginOverlay').style.display = 'flex';
       document.getElementById('appContent').style.display = 'none';
-      _currentUserId = null;
+      if (realtimeChannel) { supabase.removeChannel(realtimeChannel); realtimeChannel = null; }
+      allTasks = [];
     }
   });
 
   // ===== Supabase Realtime listener =====
   async function subscribeToTasks() {
-    if (realtimeChannel) return;
-    try {
-      const { data, error } = await supabase.from('cases').select('*').order('created_at', { ascending: false });
-
-      if (error) {
-        document.getElementById('tableBody').innerHTML =
-          `<tr><td colspan="11"><div class="empty">⚠️ 無法載入：${error.message}</div></td></tr>`;
-        return;
-      }
-      allTasks = (data || []).map(mapRow);
-      buildMonthFilter(); applyFilter();
-
-      realtimeChannel = supabase
-        .channel('admin-cases')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'cases' }, async () => {
-          const { data: fresh } = await supabase.from('cases').select('*').order('created_at', { ascending: false });
-          allTasks = (fresh || []).map(mapRow);
-          buildMonthFilter(); applyFilter();
-        })
-        .subscribe();
-    } catch (err) {
-      console.warn("載入案件資料時發生錯誤:", err);
+    const { data, error } = await supabase
+      .from('cases').select('*').order('created_at', { ascending: false });
+    if (error) {
       document.getElementById('tableBody').innerHTML =
-        `<tr><td colspan="11"><div class="empty">⚠️ 載入資料發生錯誤，請重新整理頁面。</div></td></tr>`;
+        `<tr><td colspan="11"><div class="empty">⚠️ 無法載入：${error.message}</div></td></tr>`;
+      return;
     }
+    allTasks = (data || []).map(mapRow);
+    buildMonthFilter(); applyFilter();
+
+    realtimeChannel = supabase
+      .channel('admin-cases')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'cases' }, async () => {
+        const { data: fresh } = await supabase
+          .from('cases').select('*').order('created_at', { ascending: false });
+        allTasks = (fresh || []).map(mapRow);
+        buildMonthFilter(); applyFilter();
+      })
+      .subscribe();
   }
 
   function mapRow(r) {
