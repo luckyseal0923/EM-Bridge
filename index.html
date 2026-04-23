@@ -181,7 +181,7 @@
 <body>
 
 <!-- ===== Login Overlay ===== -->
-<div id="loginOverlay">
+<div id="loginOverlay" style="display:none;">
   <div class="login-card">
     <div class="login-logo" style="flex-direction:column; align-items:flex-start; gap:8px; margin-bottom:28px;">
       <div style="display:flex; align-items:center; gap:8px;">
@@ -237,7 +237,7 @@
   </div>
 </div>
 
-<div class="container" id="appContent" style="display:none;">
+<div class="container" id="appContent">
   <div class="topbar">
     <div class="brand">
       <div class="brand-icon">🚑</div>
@@ -248,7 +248,8 @@
     </div>
     <div class="top-actions">
       <span class="pill" id="authStatus">未登入</span>
-      <button class="btn-outline" onclick="doLogout()">登出</button>
+      <button class="btn-outline" id="btnLogin" onclick="document.getElementById('loginOverlay').style.display='flex'">登入</button>
+      <button class="btn-outline" id="btnLogout" style="display:none;" onclick="doLogout()">登出</button>
       <button class="btn-outline" id="btnAdmin" style="display:none;" onclick="goAdmin()">後臺管理系統</button>
     </div>
   </div>
@@ -278,7 +279,7 @@
 
   <div class="main-grid">
     <!-- 建立案件 -->
-    <div class="card">
+    <div class="card" id="createCaseCard" style="display:none;">
       <div class="card-title">
         <div>
           <h2>EMS 建立案件</h2>
@@ -408,20 +409,10 @@
   let allTasks = [];
   let currentUser = null;
   let realtimeChannel = null;
+  let _currentUserId = null;
 
-  // ===== Auto-Heal Seamless Re-Login =====
-  setTimeout(() => {
-    const healEmail = window.sessionStorage.getItem('auto_heal_email');
-    const healPwd = window.sessionStorage.getItem('auto_heal_pwd');
-    if (healEmail && healPwd) {
-      window.sessionStorage.removeItem('auto_heal_email');
-      window.sessionStorage.removeItem('auto_heal_pwd');
-      document.getElementById('loginEmail').value = healEmail;
-      document.getElementById('loginPassword').value = healPwd;
-      console.log('🔄 Auto-heal triggered. Attempting seamless login...');
-      if (typeof doLogin === 'function') doLogin();
-    }
-  }, 500);
+  // 初始化即抓取資料 (不需等待登入)
+  subscribeToTasks();
 
   // ===== Auth =====
   window.doLogin = async function() {
@@ -627,23 +618,16 @@
   // ===== Auth State Listener =====
   supabase.auth.onAuthStateChange(async (event, session) => {
     if (event === 'PASSWORD_RECOVERY') {
-      _isRegistering = true; // 阻擋一般渲染邏輯
       document.getElementById('loginOverlay').style.display = 'none';
       document.getElementById('resetPwdModal').style.display = 'flex';
       return;
     }
-
-    if (_isRegistering) return;
     currentUser = session?.user ?? null;
+    _currentUserId = currentUser?.id || null;
 
     if (currentUser) {
-      // 🚀 [修正] 快速隱入：只要有 User，先隱藏登入框，讓使用者不會覺得被踢出去
       document.getElementById('loginOverlay').style.display = 'none';
-      document.getElementById('appContent').style.display = 'block';
       document.getElementById('authStatus').textContent = '⌛ 驗證中...';
-      
-      // 🚀 [修正] 併行加載：不用等到 Profile 抓完，只要有 Session 就先抓資料，減少「空畫面」感
-      if (!realtimeChannel) subscribeToTasks();
 
       try {
         const { data: profile, error } = await supabase
@@ -653,60 +637,63 @@
         if (error) throw error;
 
         if (profile && !profile.is_active) {
-          document.getElementById('loginOverlay').style.display = 'flex';
-          document.getElementById('appContent').style.display = 'none';
-          if (realtimeChannel) { supabase.removeChannel(realtimeChannel); realtimeChannel = null; }
-          showLoginErr('此帳號已被停用，請聯絡管理員');
+          alert('此帳號已被停用');
+          doLogout();
           return;
         }
         
-        document.getElementById('loginOverlay').style.display = 'none';
-        document.getElementById('appContent').style.display = 'block';
         const displayName = profile?.display_name || currentUser.email;
         document.getElementById('authStatus').textContent = '✓ ' + displayName;
+        document.getElementById('createCaseCard').style.display = 'block';
+        document.getElementById('btnLogin').style.display = 'none';
+        document.getElementById('btnLogout').style.display = 'inline-block';
         
         if (profile?.role === 'admin') {
           document.getElementById('btnAdmin').style.display = 'inline-block';
         } else {
           document.getElementById('btnAdmin').style.display = 'none';
         }
-        // 舊位子移除，已改為上方併行加載
       } catch (err) {
-        console.warn("驗證個案身分時發生錯誤 (可能為暫時性網路問題):", err);
-        // 🚀 [修正] 即便驗證失敗，只要 User 還在，就不要顯示登入框
-        document.getElementById('loginOverlay').style.display = 'none';
-        document.getElementById('appContent').style.display = 'block';
+        console.warn("驗證身分失敗:", err);
         document.getElementById('authStatus').textContent = '⚠️ 連線不穩';
       }
     } else {
-      document.getElementById('loginOverlay').style.display = 'flex';
-      document.getElementById('appContent').style.display = 'none';
-      if (realtimeChannel) { supabase.removeChannel(realtimeChannel); realtimeChannel = null; }
-      allTasks = [];
+      document.getElementById('authStatus').textContent = '未登入';
+      document.getElementById('createCaseCard').style.display = 'none';
+      document.getElementById('btnAdmin').style.display = 'none';
+      document.getElementById('btnLogin').style.display = 'inline-block';
+      document.getElementById('btnLogout').style.display = 'none';
     }
+    // 渲染清單 (更新遮罩狀態或編輯權限)
+    render();
   });
 
   // ===== Supabase Realtime listener =====
 
   async function subscribeToTasks() {
-    const { data, error } = await supabase
-      .from('cases').select('*').order('created_at', { ascending: false });
-    if (error) {
-      document.getElementById('list').innerHTML = `<div class="empty">⚠️ 無法載入資料：${error.message}</div>`;
-      return;
-    }
-    allTasks = (data || []).map(mapRow);
-    render();
+    if (realtimeChannel) return; // 避免重複訂閱
+    try {
+      const { data, error } = await supabase.from('cases').select('*').order('created_at', { ascending: false });
 
-    realtimeChannel = supabase
-      .channel('cases-changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'cases' }, async () => {
-        const { data: fresh } = await supabase
-          .from('cases').select('*').order('created_at', { ascending: false });
-        allTasks = (fresh || []).map(mapRow);
-        render();
-      })
-      .subscribe();
+      if (error) {
+        document.getElementById('list').innerHTML = `<div class="empty">⚠️ 無法載入資料：${error.message}</div>`;
+        return;
+      }
+      allTasks = (data || []).map(mapRow);
+      render();
+
+      realtimeChannel = supabase
+        .channel('cases-changes')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'cases' }, async () => {
+          const { data: fresh } = await supabase.from('cases').select('*').order('created_at', { ascending: false });
+          allTasks = (fresh || []).map(mapRow);
+          render();
+        })
+        .subscribe();
+    } catch (err) {
+      console.warn("載入案件資料時發生錯誤:", err);
+      document.getElementById('list').innerHTML = `<div class="empty">⚠️ 載入發生錯誤，請重新整理頁面。</div>`;
+    }
   }
 
   function mapRow(r) {
@@ -878,6 +865,10 @@
 
   // ===== Toggle Case =====
   window.toggleCase = function(caseId) {
+    if (!currentUser) {
+      document.getElementById('loginOverlay').style.display = 'flex';
+      return;
+    }
     const el = document.getElementById('body-' + caseId);
     if (!el) return;
     const head = el.previousElementSibling;
@@ -1074,9 +1065,7 @@
   };
 
   function maskName(name) {
-    if (!name) return '';
-    if (name.length === 1) return name + '○';
-    return name[0] + '○' + name.slice(-1);
+    return name || ''; // 根據使用者要求，未登入也看到清單摘要，且不要遮罩。
   }
   function maskPID(pid) {
     if (!pid) return '-';
