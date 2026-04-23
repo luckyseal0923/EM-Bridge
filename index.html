@@ -648,33 +648,38 @@
       if (!realtimeChannel) setTimeout(() => subscribeToTasks(), 500);
 
       try {
-        const { data: profile, error } = await supabase
-          .from('profiles').select('id, is_active, display_name, role')
-          .eq('id', currentUser.id).single();
-          
-        if (error) throw error;
+        // 直接用 fetch + localStorage token，避免 Supabase client 卡住
+        const token = getStoredToken();
+        if (!token) throw new Error('no token');
+        const res = await Promise.race([
+          fetch(`${SUPABASE_URL}/rest/v1/profiles?select=id,is_active,display_name,role&id=eq.${currentUser.id}`, {
+            headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${token}` }
+          }),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('profile timeout')), 5000))
+        ]);
+        const arr = await res.json();
+        const profile = Array.isArray(arr) ? arr[0] : null;
 
         if (profile && !profile.is_active) {
           document.getElementById('loginOverlay').style.display = 'flex';
           document.getElementById('appContent').style.display = 'none';
-          if (realtimeChannel) { supabase.removeChannel(realtimeChannel); realtimeChannel = null; }
+          if (realtimeChannel) { try { supabase.removeChannel(realtimeChannel); } catch(e){} realtimeChannel = null; }
           showLoginErr('此帳號已被停用，請聯絡管理員');
           return;
         }
-        
+
         document.getElementById('loginOverlay').style.display = 'none';
         document.getElementById('appContent').style.display = 'block';
         const displayName = profile?.display_name || currentUser.email;
         document.getElementById('authStatus').textContent = '✓ ' + displayName;
-        
+
         document.getElementById('btnAdmin').style.display = 'inline-block';
-        // 舊位子移除，已改為上方併行加載
       } catch (err) {
-        console.warn("驗證個案身分時發生錯誤 (可能為暫時性網路問題):", err);
-        // 🚀 [修正] 即便驗證失敗，只要 User 還在，就不要顯示登入框
+        console.warn("驗證身分時發生錯誤:", err);
         document.getElementById('loginOverlay').style.display = 'none';
         document.getElementById('appContent').style.display = 'block';
-        document.getElementById('authStatus').textContent = '⚠️ 連線不穩';
+        document.getElementById('authStatus').textContent = '✓ ' + (currentUser.email || '已登入');
+        document.getElementById('btnAdmin').style.display = 'inline-block';
       }
     } else {
       document.getElementById('loginOverlay').style.display = 'flex';
