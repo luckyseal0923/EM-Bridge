@@ -515,17 +515,46 @@
   };
 
   window.doLogout = async function() {
-    if (realtimeChannel) supabase.removeChannel(realtimeChannel);
+    if (realtimeChannel) { try { supabase.removeChannel(realtimeChannel); } catch(e){} }
     try {
-      await supabase.auth.signOut();
+      await Promise.race([
+        supabase.auth.signOut(),
+        new Promise(r => setTimeout(r, 2000))
+      ]);
     } catch(err) {
       console.warn("Logout error:", err);
-    } finally {
-      window.localStorage.clear();
-      window.sessionStorage.clear();
-      window.location.reload();
     }
+    window.localStorage.clear();
+    window.sessionStorage.clear();
+    window.location.href = 'index.html';
   };
+
+  function getStoredToken() {
+    try {
+      const projectRef = SUPABASE_URL.split('//')[1].split('.')[0];
+      const raw = localStorage.getItem(`sb-${projectRef}-auth-token`);
+      if (raw) return JSON.parse(raw)?.access_token || null;
+    } catch(e) {}
+    return null;
+  }
+
+  async function apiFetch(path, opts = {}) {
+    const token = getStoredToken();
+    if (!token) throw new Error('no token');
+    const res = await Promise.race([
+      fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+        ...opts,
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          ...(opts.headers || {})
+        }
+      }),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('請求逾時')), 8000))
+    ]);
+    return res;
+  }
 
   function showLoginErr(msg) {
     const el = document.getElementById('loginErr');
@@ -540,20 +569,17 @@
       document.getElementById('appContent').style.display = 'block';
       document.getElementById('authStatus').textContent = '⌛ 驗證中...';
 
-      // 🚀 [修正] 併行加載：有 Session 就先抓資料與即時監聽，不用等 Profile
-      if (!realtimeChannel) subscribeToTasks();
+      if (!realtimeChannel) setTimeout(() => subscribeToTasks(), 500);
 
       try {
-        const { data: profile, error } = await supabase
-          .from('profiles').select('id, is_active, display_name, role')
-          .eq('id', user.id).single();
-
-        if (error) throw error;
+        const res = await apiFetch(`profiles?select=id,is_active,display_name,role&id=eq.${user.id}`);
+        const arr = await res.json();
+        const profile = Array.isArray(arr) ? arr[0] : null;
 
         if (!profile || !profile.is_active || (profile.role !== 'admin' && profile.role !== 'platform_admin')) {
           document.getElementById('loginOverlay').style.display = 'flex';
           document.getElementById('appContent').style.display = 'none';
-          if (realtimeChannel) { supabase.removeChannel(realtimeChannel); realtimeChannel = null; }
+          if (realtimeChannel) { try { supabase.removeChannel(realtimeChannel); } catch(e){} realtimeChannel = null; }
           showLoginErr('權限不足，此為管理員專用頁面。請使用管理員帳號登入。');
           return;
         }
@@ -561,16 +587,12 @@
         currentUserRole = profile.role;
         document.getElementById('loginOverlay').style.display = 'none';
         document.getElementById('appContent').style.display = 'block';
-
-        // 所有人進得來管理後台的都能看到分頁，但進去後會檢查權限
         document.getElementById('tab-users').style.display = 'inline-block';
 
         const displayName = profile?.display_name || user.email;
         document.getElementById('authStatus').textContent = '✓ ' + displayName;
-        // 舊位子移除，已改為上方併行加載
       } catch (err) {
-        console.warn("驗證權限時發生錯誤 (可能為暫時性網路問題):", err);
-        // 🚀 [修正] 容錯處理：若 Profile 暫時拿不到，只要 User 還在就不該強行跳出
+        console.warn("驗證權限時發生錯誤:", err);
         document.getElementById('loginOverlay').style.display = 'none';
         document.getElementById('appContent').style.display = 'block';
         document.getElementById('authStatus').textContent = '⚠️ 權限驗證延遲';
@@ -584,24 +606,40 @@
   });
 
   // ===== Supabase Realtime listener =====
+  async function fetchAllCases() {
+    const res = await apiFetch('cases?select=*&order=created_at.desc');
+    const data = await res.json();
+    if (!Array.isArray(data)) throw new Error(data?.message || '資料格式錯誤');
+    return data;
+  }
+
   async function subscribeToTasks() {
-    const { data, error } = await supabase
-      .from('cases').select('*').order('created_at', { ascending: false });
-    if (error) {
-      document.getElementById('tableBody').innerHTML =
-        `<tr><td colspan="11"><div class="empty">⚠️ 無法載入：${error.message}</div></td></tr>`;
+    const token = getStoredToken();
+    if (!token) {
+      document.getElementById('loginOverlay').style.display = 'flex';
+      document.getElementById('appContent').style.display = 'none';
+      realtimeChannel = null;
       return;
     }
-    allTasks = (data || []).map(mapRow);
-    buildMonthFilter(); applyFilter();
+    try {
+      const data = await fetchAllCases();
+      allTasks = data.map(mapRow);
+      buildMonthFilter(); applyFilter();
+    } catch (e) {
+      document.getElementById('tableBody').innerHTML =
+        `<tr><td colspan="11"><div class="empty">⚠️ ${e.message}</div></td></tr>`;
+      realtimeChannel = null;
+      return;
+    }
 
     realtimeChannel = supabase
       .channel('admin-cases')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'cases' }, async () => {
-        const { data: fresh } = await supabase
-          .from('cases').select('*').order('created_at', { ascending: false });
-        allTasks = (fresh || []).map(mapRow);
-        buildMonthFilter(); applyFilter();
+        try {
+          const fresh = await fetchAllCases();
+          allTasks = fresh.map(mapRow);
+          buildMonthFilter(); applyFilter();
+        } catch(e) {}
       })
       .subscribe();
   }
