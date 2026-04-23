@@ -665,11 +665,7 @@
         const displayName = profile?.display_name || currentUser.email;
         document.getElementById('authStatus').textContent = '✓ ' + displayName;
         
-        if (profile?.role === 'admin') {
-          document.getElementById('btnAdmin').style.display = 'inline-block';
-        } else {
-          document.getElementById('btnAdmin').style.display = 'none';
-        }
+        document.getElementById('btnAdmin').style.display = 'inline-block';
         // 舊位子移除，已改為上方併行加載
       } catch (err) {
         console.warn("驗證個案身分時發生錯誤 (可能為暫時性網路問題):", err);
