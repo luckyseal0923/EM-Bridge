@@ -464,16 +464,18 @@
   };
 
   window.doLogout = async function() {
-    if (realtimeChannel) supabase.removeChannel(realtimeChannel);
+    if (realtimeChannel) { try { supabase.removeChannel(realtimeChannel); } catch(e){} }
     try {
-      await supabase.auth.signOut();
+      await Promise.race([
+        supabase.auth.signOut(),
+        new Promise(r => setTimeout(r, 2000))
+      ]);
     } catch(err) {
       console.warn("Logout error:", err);
-    } finally {
-      window.localStorage.clear();
-      window.sessionStorage.clear();
-      window.location.reload();
     }
+    window.localStorage.clear();
+    window.sessionStorage.clear();
+    window.location.reload();
   };
 
   window.goAdmin = function() {
