@@ -685,10 +685,23 @@
   // ===== Supabase Realtime listener =====
 
   async function subscribeToTasks() {
-    const { data, error } = await supabase
-      .from('cases').select('*').order('created_at', { ascending: false });
+    const timeout = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('載入逾時，請重新整理頁面')), 8000)
+    );
+    let data, error;
+    try {
+      ({ data, error } = await Promise.race([
+        supabase.from('cases').select('*').order('created_at', { ascending: false }),
+        timeout
+      ]));
+    } catch (e) {
+      document.getElementById('list').innerHTML = `<div class="empty">⚠️ ${e.message}</div>`;
+      realtimeChannel = null;
+      return;
+    }
     if (error) {
       document.getElementById('list').innerHTML = `<div class="empty">⚠️ 無法載入資料：${error.message}</div>`;
+      realtimeChannel = null;
       return;
     }
     allTasks = (data || []).map(mapRow);
