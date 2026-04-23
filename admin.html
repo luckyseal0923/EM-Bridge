@@ -240,7 +240,7 @@
     <div class="kpi">
       <div class="kpi-label">處理中案件</div>
       <div class="kpi-value" id="kpiProgress">0</div>
-      <div class="kpi-note">待衛生局 / 後台處理</div>
+      <div class="kpi-note">待衛生所 / 後台處理</div>
     </div>
     <div class="kpi">
       <div class="kpi-label">已結案</div>
@@ -275,7 +275,7 @@
     <select id="statusFilter" onchange="applyFilter()">
       <option value="">全部狀態</option>
       <option value="hospital">待醫院回報</option>
-      <option value="gov">待衛生局回報</option>
+      <option value="gov">待衛生所回報</option>
       <option value="reviewed">待後台結案</option>
       <option value="closed">已結案</option>
     </select>
@@ -296,7 +296,7 @@
           <th>年齡</th>
           <th>主訴</th>
           <th>後送醫院</th>
-          <th>衛生局診斷</th>
+          <th>衛生所診斷</th>
           <th>醫院動向</th>
           <th>狀態</th>
           <th>通報時間</th>
@@ -371,7 +371,7 @@
       <label class="export-opt"><input type="checkbox" id="exp-treat" /> 治療</label>
       <label class="export-opt"><input type="checkbox" id="exp-disp" /> 醫療動向</label>
       <label class="export-opt"><input type="checkbox" id="exp-status" checked /> 狀態</label>
-      <label class="export-opt"><input type="checkbox" id="exp-note" /> 衛生局回報</label>
+      <label class="export-opt"><input type="checkbox" id="exp-note" /> 衛生所回報</label>
     </div>
     <div style="display:flex;gap:10px;justify-content:flex-end;">
       <button class="btn-outline" onclick="closeExportModal()">取消</button>
@@ -716,7 +716,7 @@
     else {
       const t = allTasks.find(x => x.dbId === dbId);
       if (t) { t.report.note = note; t.report.status = 'reviewed'; }
-      alert('儲存衛生局回報成功！');
+      alert('儲存衛生所回報成功！');
       openDrawer(dbId);
     }
   };
@@ -896,16 +896,16 @@
 
       <div class="d-section">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-          <h4 style="margin:0;">衛生局回報</h4>
+          <h4 style="margin:0;">衛生所回報</h4>
           ${t.report?.status === 'reviewed' || t.report?.status === 'closed' ? '<span style="color:#16a34a;font-size:12px;font-weight:700;">✅ 已完成</span>' : ''}
         </div>
         <div id="drawer-gov-view" style="display:${t.report?.status === 'reviewed' || t.report?.status === 'closed' ? 'block' : 'none'};">
           <div class="d-row"><div class="d-label">回報內容</div><div class="d-val">${t.report?.note || '-'}</div></div>
-          <button class="btn-outline" style="margin-top:10px;width:100%;padding:6px;font-size:12px;" onclick="unlockGovAdmin('${t.dbId}')">編輯衛生局回報</button>
+          <button class="btn-outline" style="margin-top:10px;width:100%;padding:6px;font-size:12px;" onclick="unlockGovAdmin('${t.dbId}')">編輯衛生所回報</button>
         </div>
         <div id="drawer-gov-edit" style="display:${t.report?.status === 'reviewed' || t.report?.status === 'closed' ? 'none' : 'block'};">
-          <textarea id="drawer-gov-note" placeholder="衛生局處理記錄..." style="width:100%;margin-bottom:12px;padding:8px;border:1px solid var(--border);border-radius:8px;min-height:80px;">${escapeHtml(t.report?.note)}</textarea>
-          <button class="btn-outline" style="width:100%;background:var(--primary);color:#fff;border:none;" onclick="saveGovAdmin('${t.dbId}', '${t.id}')">儲存衛生局回報</button>
+          <textarea id="drawer-gov-note" placeholder="衛生所處理記錄..." style="width:100%;margin-bottom:12px;padding:8px;border:1px solid var(--border);border-radius:8px;min-height:80px;">${escapeHtml(t.report?.note)}</textarea>
+          <button class="btn-outline" style="width:100%;background:var(--primary);color:#fff;border:none;" onclick="saveGovAdmin('${t.dbId}', '${t.id}')">儲存衛生所回報</button>
         </div>
       </div>
 
@@ -955,7 +955,7 @@
       { id:'exp-treat',   key:'hospital.treatment',label:'治療' },
       { id:'exp-disp',    key:'hospital.disposition',label:'醫療動向' },
       { id:'exp-status',  key:'report.status',     label:'狀態' },
-      { id:'exp-note',    key:'report.note',       label:'衛生局回報' },
+      { id:'exp-note',    key:'report.note',       label:'衛生所回報' },
     ].filter(f => document.getElementById(f.id)?.checked);
 
     if (!fields.length) { alert('請至少選擇一個欄位'); return; }
@@ -1002,7 +1002,7 @@
   function formatDateTime(v) { return v ? String(v).replace('T',' ') : '-'; }
   function getStatusText(st) {
     if (st === 'hospital') return '待醫院回報';
-    if (st === 'gov') return '待衛生局回報';
+    if (st === 'gov') return '待衛生所回報';
     if (st === 'reviewed') return '待後台結案';
     if (st === 'closed') return '已結案';
     return '-';

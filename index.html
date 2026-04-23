@@ -357,7 +357,7 @@
         <select id="statusFilter" onchange="render()">
           <option value="">全部狀態</option>
           <option value="hospital">待醫院回報</option>
-          <option value="gov">待衛生局回報</option>
+          <option value="gov">待衛生所回報</option>
           <option value="closed">結案</option>
         </select>
       </div>
@@ -978,7 +978,7 @@
             <div class="timeline">
               <span class="step active">EMS 通報</span>
               <span class="step ${t.report?.status === 'gov' || t.report?.status === 'reviewed' || t.report?.status === 'closed' ? 'active' : ''}">醫院處置</span>
-              <span class="step ${t.report?.status === 'gov' || t.report?.status === 'reviewed' || t.report?.status === 'closed' ? 'active' : ''}">衛生局</span>
+              <span class="step ${t.report?.status === 'gov' || t.report?.status === 'reviewed' || t.report?.status === 'closed' ? 'active' : ''}">衛生所</span>
               <span class="step ${t.report?.status === 'closed' ? 'active' : ''}">結案</span>
             </div>
           </div>
@@ -1018,8 +1018,8 @@
               </div>
             </div>
             <div class="panel">
-              <div class="panel-title"><h3>衛生局回報</h3><span class="role-badge" style="background:#fef3c7;color:#92400e;">衛生局</span></div>
-              <label>衛生局回報內容</label>
+              <div class="panel-title"><h3>衛生所回報</h3><span class="role-badge" style="background:#fef3c7;color:#92400e;">衛生所</span></div>
+              <label>衛生所回報內容</label>
               <textarea id="gov-${t.id}" placeholder="例如：已電話追蹤、安排家訪、提供衛教與資源轉介" ${t.report?.status === 'reviewed' || t.report?.status === 'closed' ? 'readonly' : ''}>${escapeHtml(t.report?.note || '')}</textarea>
               <div class="small">狀態：${getStatusText(t.report?.status)}${!t.report?.note ? '｜尚未填寫衛生所回報' : ''}</div>
               <div id="govAction-${t.id}">
@@ -1029,7 +1029,7 @@
                     <button class="btn-outline" style="padding:6px 12px; font-size:12px;" onclick="unlockGov('${t.id}', '${t.dbId}')">重新編輯</button>
                   </div>
                 ` : `
-                  <div class="action-row"><button class="btn" onclick="saveGov('${t.dbId}', '${t.id}')">儲存衛生局回報</button></div>
+                  <div class="action-row"><button class="btn" onclick="saveGov('${t.dbId}', '${t.id}')">儲存衛生所回報</button></div>
                 `}
               </div>
             </div>
@@ -1137,7 +1137,7 @@
   function formatDateTime(v) { return v ? String(v).replace('T',' ') : ''; }
   function getStatusText(st) {
     if (st === 'hospital') return '待醫院回報';
-    if (st === 'gov') return '待衛生局回報';
+    if (st === 'gov') return '待衛生所回報';
     if (st === 'reviewed') return '待後台結案';
     if (st === 'closed') return '已結案';
     return '-';
