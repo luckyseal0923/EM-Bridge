@@ -197,6 +197,20 @@
     @media (max-width:640px){
       .container{ padding:14px; } .topbar{ flex-direction:column; align-items:flex-start; }
       .form-grid, .filters, .case-summary, .kpi-grid{ grid-template-columns:1fr; }
+      .kpi-grid, #caseListCard { display: none !important; }
+      #mobileNotice { display: block !important; }
+    }
+
+    #mobileNotice {
+      display: none;
+      text-align: center;
+      padding: 24px 16px;
+      margin-top: 20px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.6;
+      background: #f1f5f9;
+      border-radius: 12px;
     }
   </style>
 </head>
@@ -368,7 +382,7 @@
     </div>
 
     <!-- 案件清單 -->
-    <div class="card">
+    <div class="card" id="caseListCard">
       <div class="card-title">
         <div>
           <h2>案件清單</h2>
@@ -389,6 +403,10 @@
       </div>
     </div>
   </div>
+  
+  <div id="mobileNotice">
+    ⚠️ 手機瀏覽僅有建立案件內容，愈詳細觀看所有功能，請用電腦版登入
+  </div>
 </div>
 
 <!-- Registration Success Modal -->
@@ -402,6 +420,18 @@
       立即登入 →
     </button>
     <button onclick="closeRegSuccessModal()" style="margin-top:10px;width:100%;padding:11px;background:transparent;border:1px solid #e2e8f0;border-radius:10px;font-size:.9rem;color:#64748b;cursor:pointer;">稍後再登入</button>
+  </div>
+</div>
+
+<!-- Case Success Modal -->
+<div id="caseSuccessModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:999;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:24px;padding:40px 36px;width:380px;max-width:92vw;box-shadow:0 24px 64px rgba(0,0,0,.3);text-align:center;animation:fadeInUp .35s ease;">
+    <div style="font-size:3.5rem;margin-bottom:16px;">🚑</div>
+    <h2 style="margin:0 0 12px;font-size:1.5rem;color:#0f172a;font-weight:800;">案件建立成功！</h2>
+    <p style="color:#64748b;font-size:1rem;margin:0 0 32px;line-height:1.6;">案件已成功進入系統<br>醫院端將會收到即時通報。</p>
+    <button onclick="document.getElementById('caseSuccessModal').style.display='none'" style="width:100%;padding:14px;background:var(--primary);color:#fff;border:none;border-radius:12px;font-size:1rem;font-weight:700;cursor:pointer;transition:background .2s;">
+      確定
+    </button>
   </div>
 </div>
 
@@ -899,6 +929,9 @@
     if (error) {
       alert('建立案件失敗：' + error.message);
     } else {
+      // 顯示成功彈窗
+      document.getElementById('caseSuccessModal').style.display = 'flex';
+
       ['name','birth','pid','addr','village','time','cc','emsNote'].forEach(id => document.getElementById(id).value = '');
       document.getElementById('gender').value = '';
       document.getElementById('hospital').value = '';
