@@ -170,6 +170,28 @@
     }
     @keyframes spin{ to{ transform:rotate(360deg); } }
 
+    /* ===== Auth Toast ===== */
+    #authToast {
+      position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%) translateY(20px);
+      background: #1e293b; color: #fff;
+      padding: 14px 24px; border-radius: 999px;
+      font-size: 14px; font-weight: 600;
+      display: flex; align-items: center; gap: 10px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+      opacity: 0; pointer-events: none;
+      transition: opacity .3s ease, transform .3s ease;
+      z-index: 9999; white-space: nowrap;
+    }
+    #authToast.show {
+      opacity: 1; transform: translateX(-50%) translateY(0);
+    }
+    #authToast .toast-btn {
+      background: var(--primary); color: #fff; border: none;
+      border-radius: 999px; padding: 6px 14px;
+      font-size: 13px; font-weight: 700; cursor: pointer;
+      pointer-events: all;
+    }
+
     @media (max-width:1200px){ .case-summary{ grid-template-columns:repeat(2,1fr); } .case-body-grid{ grid-template-columns:1fr; } }
     @media (max-width:980px){ .main-grid{ grid-template-columns:1fr; } .kpi-grid{ grid-template-columns:repeat(2,1fr); } }
     @media (max-width:640px){
@@ -394,6 +416,12 @@
     <input id="newPwd2" type="password" placeholder="再次輸入新密碼" style="width:100%;margin-bottom:24px;padding:12px;border:1px solid #e2e8f0;border-radius:12px;outline:none;" />
     <button id="btnResetConfirm" onclick="doResetPassword()" style="width:100%;background:var(--primary);color:#fff;border:none;border-radius:12px;padding:13px;font-size:15px;font-weight:700;cursor:pointer;">確認重設</button>
   </div>
+</div>
+
+<!-- ===== Auth Toast ===== -->
+<div id="authToast">
+  🔐 請先登入才能查看完整案件內容
+  <button class="toast-btn" onclick="document.getElementById('loginOverlay').style.display='flex'; hideAuthToast()">立即登入</button>
 </div>
 
 <!-- Supabase SDK -->
@@ -948,9 +976,9 @@
 
   // ===== Toggle Case =====
   window.toggleCase = function(caseId) {
-    // 未登入者：彈出登入視窗
+    // 未登入者：顯示 Toast 警示
     if (!currentUser) {
-      document.getElementById('loginOverlay').style.display = 'flex';
+      showAuthToast();
       return;
     }
     const el = document.getElementById('body-' + caseId);
@@ -959,6 +987,18 @@
     const isOpen = el.style.display === 'block';
     el.style.display = isOpen ? 'none' : 'block';
     if (!isOpen) { head.classList.add('active'); } else { head.classList.remove('active'); }
+  };
+
+  let _toastTimer = null;
+  function showAuthToast() {
+    const toast = document.getElementById('authToast');
+    toast.classList.add('show');
+    clearTimeout(_toastTimer);
+    _toastTimer = setTimeout(() => toast.classList.remove('show'), 3500);
+  }
+  window.hideAuthToast = function() {
+    document.getElementById('authToast').classList.remove('show');
+    clearTimeout(_toastTimer);
   };
 
   // ===== Toggle Other Hospital =====
