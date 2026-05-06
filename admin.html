@@ -824,7 +824,7 @@
         <td onclick="event.stopPropagation()"><input type="checkbox" class="checkbox row-check" data-fid="${t.dbId}" data-id="${t.id}" /></td>
         <td class="id-cell">${t.id}</td>
         <td>
-          ${maskName(t.name)}
+          ${t.name || '-'}
           ${hasDup ? '<span title="14天內重複通報" style="cursor:help; margin-left:4px; color:#ef4444; font-weight:bold;">⚠️</span>' : ''}
         </td>
         <td>${formatGender(t.gender)}</td>
@@ -902,7 +902,9 @@
       
       <div class="d-section">
         <h4>EMS 院前資訊</h4>
-        <div class="d-row"><div class="d-label">病患姓名</div><div class="d-val">${maskName(t.name)}</div></div>
+        <div class="d-row"><div class="d-label">病患姓名</div><div class="d-val">${t.name || '-'}</div></div>
+        <div class="d-row"><div class="d-label">出生日期</div><div class="d-val">${t.birth || '-'}</div></div>
+        <div class="d-row"><div class="d-label">身分證號</div><div class="d-val">${maskPID(t.pid)}</div></div>
         <div class="d-row"><div class="d-label">通報時間</div><div class="d-val">${formatDateTime(t.time)}</div></div>
         <div class="d-row"><div class="d-label">地址 / 里別</div><div class="d-val">${t.addr || '-'}${t.village ? ' (' + t.village + ')' : ''}</div></div>
         <div class="d-row"><div class="d-label">主訴</div><div class="d-val">${t.cc || '-'}</div></div>
