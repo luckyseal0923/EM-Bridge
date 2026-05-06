@@ -229,6 +229,12 @@
       background: #f1f5f9;
       border-radius: 12px;
     }
+
+    @keyframes pulse {
+      0% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.05); opacity: 0.8; }
+      100% { transform: scale(1); opacity: 1; }
+    }
   </style>
 </head>
 <body>
@@ -1081,13 +1087,25 @@
       list.innerHTML = `<div class="empty">目前沒有符合條件的案件</div>`;
       return;
     }
-    list.innerHTML = tasks.map(t => `
+    list.innerHTML = tasks.map(t => {
+      // 檢查 14 天內是否有重複通報
+      const hasDuplicate = allTasks.some(other => {
+        if (other.dbId === t.dbId) return false;
+        const samePerson = (t.pid && other.pid && t.pid === other.pid) || 
+                         (!t.pid && t.name === other.name && t.birth === other.birth);
+        if (!samePerson) return false;
+        const d1 = new Date(t.time); const d2 = new Date(other.time);
+        return Math.abs(d1 - d2) <= (14 * 24 * 60 * 60 * 1000);
+      });
+
+      return `
       <div class="case-item">
         <div class="case-head" onclick="toggleCase('${t.id}')">
           <div class="case-head-top">
-            <div>
+            <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
               <div class="case-id-wrap"><div class="case-id">${t.id}</div></div>
-              <div class="subtext" style="margin-top:6px;">${formatDateTime(t.time) || '未填時間'}</div>
+              ${hasDuplicate ? `<span style="background:#ef4444; color:#fff; font-size:11px; padding:4px 10px; border-radius:6px; font-weight:800; animation:pulse 2s infinite; display:flex; align-items:center; gap:4px;">⚠️ 14天內重複通報</span>` : ''}
+              <div class="subtext">${formatDateTime(t.time) || '未填時間'}</div>
             </div>
             <span class="status-badge ${statusClass(t.report?.status)}">${getStatusText(t.report?.status)}</span>
           </div>
@@ -1160,7 +1178,8 @@
           </div>
         </div>
       </div>
-    `).join('');
+      `;
+    }).join('');
   };
 
   function updateKPI() {
