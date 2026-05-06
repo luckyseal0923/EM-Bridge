@@ -1104,13 +1104,18 @@
           <div class="case-head-top">
             <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
               <div class="case-id-wrap"><div class="case-id">${t.id}</div></div>
-              ${hasDuplicate ? `<span style="background:#ef4444; color:#fff; font-size:11px; padding:4px 10px; border-radius:6px; font-weight:800; animation:pulse 2s infinite; display:flex; align-items:center; gap:4px;">⚠️ 14天內重複通報</span>` : ''}
               <div class="subtext">${formatDateTime(t.time) || '未填時間'}</div>
             </div>
             <span class="status-badge ${statusClass(t.report?.status)}">${getStatusText(t.report?.status)}</span>
           </div>
           <div class="case-summary">
-            <div class="summary-box"><div class="label">病人</div><div class="value">${maskName(t.name)}｜${formatGender(t.gender)}｜${calcAge(t.birth) || '-'} 歲</div></div>
+            <div class="summary-box">
+              <div class="label" style="display:flex; justify-content:space-between; align-items:center;">
+                <span>病人</span>
+                ${hasDuplicate ? `<span style="background:#ef4444; color:#fff; font-size:10px; padding:2px 8px; border-radius:4px; font-weight:800; animation:pulse 2s infinite;">⚠️ 14天內重複通報</span>` : ''}
+              </div>
+              <div class="value">${maskName(t.name)}｜${formatGender(t.gender)}｜${calcAge(t.birth) || '-'} 歲</div>
+            </div>
             <div class="summary-box"><div class="label">主訴</div><div class="value">${t.cc || '-'}</div></div>
             <div class="summary-box"><div class="label">後送醫院</div><div class="value">${formatHospital(t.transportHospital)}</div></div>
           </div>
