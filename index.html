@@ -1112,7 +1112,7 @@
             <div class="summary-box">
               <div class="label" style="display:flex; justify-content:space-between; align-items:center;">
                 <span>病人</span>
-                ${hasDuplicate ? `<span style="background:#ef4444; color:#fff; font-size:10px; padding:2px 8px; border-radius:4px; font-weight:800; animation:pulse 2s infinite;">⚠️ 14天內重複通報</span>` : ''}
+                ${hasDuplicate ? `<span style="background:#ef4444; color:#fff; font-size:10px; padding:2px 8px; border-radius:4px; font-weight:800; animation:pulse 2s infinite;">⚠️ 14D內重複</span>` : ''}
               </div>
               <div class="value">${maskName(t.name)}｜${formatGender(t.gender)}｜${calcAge(t.birth) || '-'} 歲</div>
             </div>
