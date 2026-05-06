@@ -181,7 +181,7 @@
 <body>
 
 <!-- ===== Login Overlay ===== -->
-<div id="loginOverlay">
+<div id="loginOverlay" style="display:none;">
   <div class="login-card">
     <div class="login-logo" style="flex-direction:column; align-items:flex-start; gap:8px; margin-bottom:28px;">
       <div style="display:flex; align-items:center; gap:8px;">
@@ -248,7 +248,8 @@
     </div>
     <div class="top-actions">
       <span class="pill" id="authStatus">未登入</span>
-      <button class="btn-outline" onclick="doLogout()">登出</button>
+      <button class="btn-outline" id="btnLogin" onclick="document.getElementById('loginOverlay').style.display='flex'">🔐 登入驗證</button>
+      <button class="btn-outline" id="btnLogout" style="display:none;" onclick="doLogout()">登出</button>
       <button class="btn-outline" id="btnAdmin" style="display:none;" onclick="goAdmin()">後臺管理系統</button>
     </div>
   </div>
@@ -693,14 +694,17 @@
         document.getElementById('appContent').style.display = 'block';
         const displayName = profile?.display_name || currentUser.email;
         document.getElementById('authStatus').textContent = '✓ ' + displayName;
-
         document.getElementById('btnAdmin').style.display = 'inline-block';
+        document.getElementById('btnLogin').style.display = 'none';
+        document.getElementById('btnLogout').style.display = 'inline-block';
       } catch (err) {
         console.warn("驗證身分時發生錯誤:", err);
         document.getElementById('loginOverlay').style.display = 'none';
         document.getElementById('appContent').style.display = 'block';
         document.getElementById('authStatus').textContent = '✓ ' + (currentUser.email || '已登入');
         document.getElementById('btnAdmin').style.display = 'inline-block';
+        document.getElementById('btnLogin').style.display = 'none';
+        document.getElementById('btnLogout').style.display = 'inline-block';
       }
     } else {
       document.getElementById('loginOverlay').style.display = 'none';
@@ -944,6 +948,11 @@
 
   // ===== Toggle Case =====
   window.toggleCase = function(caseId) {
+    // 未登入者：彈出登入視窗
+    if (!currentUser) {
+      document.getElementById('loginOverlay').style.display = 'flex';
+      return;
+    }
     const el = document.getElementById('body-' + caseId);
     if (!el) return;
     const head = el.previousElementSibling;
