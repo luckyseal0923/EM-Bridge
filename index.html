@@ -414,6 +414,24 @@
   // 初始化即抓取資料 (不需等待登入)
   subscribeToTasks();
 
+  // ===== Auto-Heal Seamless Re-Login =====
+  setTimeout(() => {
+    const healEmail = window.sessionStorage.getItem('auto_heal_email');
+    const healPwd = window.sessionStorage.getItem('auto_heal_pwd');
+    if (healEmail && healPwd) {
+      window.sessionStorage.removeItem('auto_heal_email');
+      window.sessionStorage.removeItem('auto_heal_pwd');
+      const emailEl = document.getElementById('loginEmail');
+      const pwdEl = document.getElementById('loginPassword');
+      if (emailEl && pwdEl) {
+        emailEl.value = healEmail;
+        pwdEl.value = healPwd;
+        console.log('🔄 Auto-heal triggered. Attempting seamless login...');
+        doLogin();
+      }
+    }
+  }, 500);
+
   // ===== Auth =====
   window.doLogin = async function() {
     const email = document.getElementById('loginEmail').value.trim();
@@ -1091,7 +1109,7 @@
   }
   function statusClass(st) {
     if (st === 'hospital') return 'status-pending';
-    if (st === 'gov') return 'status-progress';
+    if (st === 'gov') return 'status-done';
     if (st === 'reviewed') return 'status-progress';
     if (st === 'closed') return 'status-closed';
     return '';
