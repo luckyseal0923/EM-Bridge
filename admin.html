@@ -810,11 +810,23 @@
       tbody.innerHTML = `<tr><td colspan="11"><div class="empty">目前沒有符合條件的案件</div></td></tr>`;
       renderPager(); return;
     }
-    tbody.innerHTML = page.map(t => `
+    tbody.innerHTML = page.map(t => {
+      const hasDup = allTasks.some(other => {
+        if (other.dbId === t.dbId) return false;
+        const samePerson = (t.pid && other.pid && t.pid === other.pid) || 
+                         (!t.pid && t.name === other.name && t.birth === other.birth);
+        if (!samePerson) return false;
+        const d1 = new Date(t.time); const d2 = new Date(other.time);
+        return Math.abs(d1 - d2) <= (14 * 24 * 60 * 60 * 1000);
+      });
+      return `
       <tr onclick="openDrawer('${t.dbId}')">
         <td onclick="event.stopPropagation()"><input type="checkbox" class="checkbox row-check" data-fid="${t.dbId}" data-id="${t.id}" /></td>
         <td class="id-cell">${t.id}</td>
-        <td>${maskName(t.name)}</td>
+        <td>
+          ${maskName(t.name)}
+          ${hasDup ? '<span title="14天內重複通報" style="cursor:help; margin-left:4px; color:#ef4444; font-weight:bold;">⚠️</span>' : ''}
+        </td>
         <td>${formatGender(t.gender)}</td>
         <td>${calcAge(t.birth) || '-'}</td>
         <td>${t.cc || '-'}</td>
@@ -824,7 +836,8 @@
         <td><span class="status-badge ${statusClass(t.report?.status)}">${getStatusText(t.report?.status)}</span></td>
         <td>${formatDateTime(t.time)}</td>
       </tr>
-    `).join('');
+      `;
+    }).join('');
     renderPager();
   }
 
