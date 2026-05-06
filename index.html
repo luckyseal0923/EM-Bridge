@@ -409,6 +409,9 @@
   let currentUser = null;
   let realtimeChannel = null;
 
+  // ===== 立即載入案件資料（不需登入）=====
+  subscribeToTasks();
+
   // ===== Auto-Heal Seamless Re-Login =====
   setTimeout(() => {
     const healEmail = window.sessionStorage.getItem('auto_heal_email');
@@ -707,6 +710,8 @@
       document.getElementById('btnAdmin').style.display = 'none';
       document.getElementById('btnLogin').style.display = 'inline-block';
       document.getElementById('btnLogout').style.display = 'none';
+      // 未登入也要載入案件清單
+      if (!realtimeChannel) subscribeToTasks();
     }
   });
 
