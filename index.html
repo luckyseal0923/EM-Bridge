@@ -279,7 +279,7 @@
 
   <div class="main-grid">
     <!-- 建立案件 -->
-    <div class="card" id="createCaseCard" style="display:none;">
+    <div class="card" id="createCaseCard">
       <div class="card-title">
         <div>
           <h2>EMS 建立案件</h2>
@@ -677,7 +677,7 @@
       }
     } else {
       document.getElementById('authStatus').textContent = '未登入';
-      document.getElementById('createCaseCard').style.display = 'none';
+      document.getElementById('createCaseCard').style.display = 'block';
       document.getElementById('btnAdmin').style.display = 'none';
       document.getElementById('btnLogin').style.display = 'inline-block';
       document.getElementById('btnLogout').style.display = 'none';
@@ -743,7 +743,6 @@
 
   // ===== Create Case =====
   window.createCase = async function() {
-    if (!currentUser) { alert('請先登入'); return; }
     const name = document.getElementById('name').value.trim();
     const birth = document.getElementById('birth').value.trim();
     const gender = document.getElementById('gender').value;
@@ -799,8 +798,8 @@
       ems_note: emsNote || '',
       report_status: 'hospital',
       report_note: '',
-      created_by: currentUser.id,
-      created_by_email: currentUser.email
+      created_by: currentUser ? currentUser.id : null,
+      created_by_email: currentUser ? currentUser.email : '訪客 (未登入)'
     });
 
     if (error) {
