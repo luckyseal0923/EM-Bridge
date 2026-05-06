@@ -743,29 +743,35 @@
   }
 
   async function subscribeToTasks() {
-    // 允許無 token 時也能抓取資料
-    const token = getStoredToken();
-
+    if (realtimeChannel) return; // 避免重複訂閱
     const listEl = document.getElementById('list');
     try {
-      const data = await fetchCases(token);
-      allTasks = data.map(mapRow);
+      // 使用 Supabase client 直接讀取，自動帶 anon key，支援未登入狀態
+      const { data, error } = await supabase
+        .from('cases')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        listEl.innerHTML = `<div class="empty">⚠️ 無法載入資料：${error.message}</div>`;
+        return;
+      }
+      allTasks = (data || []).map(mapRow);
       render();
     } catch (e) {
       listEl.innerHTML = `<div class="empty">⚠️ ${e.message}</div>`;
-      realtimeChannel = null;
       return;
     }
 
     realtimeChannel = supabase
       .channel('cases-changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'cases' }, async () => {
-        const t = getStoredToken();
-        try {
-          const fresh = await fetchCases(t);
-          allTasks = fresh.map(mapRow);
-          render();
-        } catch(e) {}
+        const { data: fresh } = await supabase
+          .from('cases')
+          .select('*')
+          .order('created_at', { ascending: false });
+        allTasks = (fresh || []).map(mapRow);
+        render();
       })
       .subscribe();
   }
