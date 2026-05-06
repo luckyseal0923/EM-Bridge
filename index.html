@@ -237,7 +237,7 @@
   </div>
 </div>
 
-<div class="container" id="appContent" style="display:none;">
+<div class="container" id="appContent">
   <div class="topbar">
     <div class="brand">
       <div class="brand-icon">🚑</div>
@@ -278,7 +278,7 @@
 
   <div class="main-grid">
     <!-- 建立案件 -->
-    <div class="card">
+    <div class="card" id="createCaseCard">
       <div class="card-title">
         <div>
           <h2>EMS 建立案件</h2>
@@ -700,10 +700,13 @@
         document.getElementById('btnAdmin').style.display = 'inline-block';
       }
     } else {
-      document.getElementById('loginOverlay').style.display = 'flex';
-      document.getElementById('appContent').style.display = 'none';
-      if (realtimeChannel) { supabase.removeChannel(realtimeChannel); realtimeChannel = null; }
-      allTasks = [];
+      document.getElementById('loginOverlay').style.display = 'none';
+      document.getElementById('appContent').style.display = 'block';
+      document.getElementById('authStatus').textContent = '未登入';
+      document.getElementById('createCaseCard').style.display = 'block';
+      document.getElementById('btnAdmin').style.display = 'none';
+      document.getElementById('btnLogin').style.display = 'inline-block';
+      document.getElementById('btnLogout').style.display = 'none';
     }
   });
 
@@ -723,10 +726,10 @@
   }
 
   async function fetchCases(token) {
+    const headers = { 'apikey': SUPABASE_KEY };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
     const res = await Promise.race([
-      fetch(`${SUPABASE_URL}/rest/v1/cases?select=*&order=created_at.desc`, {
-        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${token}` }
-      }),
+      fetch(`${SUPABASE_URL}/rest/v1/cases?select=*&order=created_at.desc`, { headers }),
       new Promise((_, reject) => setTimeout(() => reject(new Error('載入逾時，請重新整理頁面')), 8000))
     ]);
     const data = await res.json();
@@ -735,14 +738,8 @@
   }
 
   async function subscribeToTasks() {
-    // 直接從 localStorage 讀 token，完全繞開可能卡住的 Supabase client
+    // 允許無 token 時也能抓取資料
     const token = getStoredToken();
-    if (!token) {
-      document.getElementById('loginOverlay').style.display = 'flex';
-      document.getElementById('appContent').style.display = 'none';
-      realtimeChannel = null;
-      return;
-    }
 
     const listEl = document.getElementById('list');
     try {
@@ -759,7 +756,6 @@
       .channel('cases-changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'cases' }, async () => {
         const t = getStoredToken();
-        if (!t) return;
         try {
           const fresh = await fetchCases(t);
           allTasks = fresh.map(mapRow);
@@ -798,7 +794,6 @@
 
   // ===== Create Case =====
   window.createCase = async function() {
-    if (!currentUser) { alert('請先登入'); return; }
     const name = document.getElementById('name').value.trim();
     const birth = document.getElementById('birth').value.trim();
     const gender = document.getElementById('gender').value;
@@ -854,8 +849,8 @@
       ems_note: emsNote || '',
       report_status: 'hospital',
       report_note: '',
-      created_by: currentUser.id,
-      created_by_email: currentUser.email
+      created_by: currentUser ? currentUser.id : null,
+      created_by_email: currentUser ? currentUser.email : '訪客 (未登入)'
     });
 
     if (error) {
