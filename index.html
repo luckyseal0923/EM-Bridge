@@ -303,7 +303,7 @@
       <span class="pill" id="authStatus">未登入</span>
       <button class="btn-outline" id="btnLogin" onclick="document.getElementById('loginOverlay').style.display='flex'">🔐 登入驗證</button>
       <button class="btn-outline" id="btnLogout" style="display:none;" onclick="doLogout()">登出</button>
-      <button class="btn-outline" id="btnAdmin" style="display:none;" onclick="goAdmin()">後臺管理系統</button>
+      <button class="btn-outline" id="btnAdmin" onclick="goAdmin()">⚙️ 後臺管理系統</button>
     </div>
   </div>
 
@@ -786,7 +786,8 @@
       document.getElementById('appContent').style.display = 'block';
       document.getElementById('authStatus').textContent = '未登入';
       document.getElementById('createCaseCard').style.display = 'block';
-      document.getElementById('btnAdmin').style.display = 'none';
+      // 保持後台連結可見
+      document.getElementById('btnAdmin').style.display = 'inline-block';
       document.getElementById('btnLogin').style.display = 'inline-block';
       document.getElementById('btnLogout').style.display = 'none';
       // 未登入也要載入案件清單
