@@ -279,6 +279,9 @@
       <option value="reviewed">待後台結案</option>
       <option value="closed">已結案</option>
     </select>
+    <select id="villageFilter" onchange="applyFilter()">
+      <option value="">全部里別</option>
+    </select>
     <button class="btn-warning" onclick="batchClose()">批次結案</button>
     <button class="btn-danger" onclick="batchDelete()">批次刪除</button>
     <button class="btn-primary" onclick="openExportModal()">📄 匯出 CSV</button>
@@ -355,9 +358,9 @@
 <!-- Export Modal -->
 <div id="exportModal">
   <div class="export-card">
-    <div style="background:var(--card2); border:1px solid var(--border); border-radius:12px; padding:16px; margin-bottom:20px;">
+    <div style="background:var(--card2); border:1px solid var(--border); border-radius:12px; padding:16px; margin-bottom:12px;">
       <h4 style="margin:0 0 10px; font-size:14px; color:var(--text);">📅 查詢區間 (依通報時間)</h4>
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px;">
         <div>
           <label style="font-size:12px; color:var(--muted);">開始日期</label>
           <input type="date" id="exp-start-date" style="padding:8px; border-radius:8px; border:1px solid var(--border); width:100%;">
@@ -367,6 +370,10 @@
           <input type="date" id="exp-end-date" style="padding:8px; border-radius:8px; border:1px solid var(--border); width:100%;">
         </div>
       </div>
+      <h4 style="margin:0 0 10px; font-size:14px; color:var(--text);">📍 篩選里別</h4>
+      <select id="exp-village-filter" style="width:100%; padding:8px; border-radius:8px; border:1px solid var(--border); background:#fff;">
+        <option value="">全部里別</option>
+      </select>
     </div>
     <div class="export-options">
       <label class="export-opt"><input type="checkbox" id="exp-id" checked /> 案件編號</label>
@@ -658,7 +665,7 @@
     try {
       const data = await fetchAllCases();
       allTasks = data.map(mapRow);
-      buildMonthFilter(); applyFilter();
+      buildMonthFilter(); buildVillageFilter(); applyFilter();
     } catch (e) {
       document.getElementById('tableBody').innerHTML =
         `<tr><td colspan="11"><div class="empty">⚠️ ${e.message}</div></td></tr>`;
@@ -672,7 +679,7 @@
         try {
           const fresh = await fetchAllCases();
           allTasks = fresh.map(mapRow);
-          buildMonthFilter(); applyFilter();
+          buildMonthFilter(); buildVillageFilter(); applyFilter();
         } catch(e) {}
       })
       .subscribe();
@@ -776,17 +783,33 @@
       sel.appendChild(opt);
     });
   }
+  
+  function buildVillageFilter() {
+    const villages = new Set();
+    allTasks.forEach(t => { if (t.village) villages.add(t.village); });
+    const sel = document.getElementById('villageFilter');
+    const cur = sel.value;
+    sel.innerHTML = '<option value="">全部里別</option>';
+    [...villages].sort().forEach(v => {
+      const opt = document.createElement('option');
+      opt.value = v; opt.textContent = v;
+      if (v === cur) opt.selected = true;
+      sel.appendChild(opt);
+    });
+  }
 
   window.applyFilter = function() {
     const q = (document.getElementById('searchInput').value || '').toLowerCase();
     const month = document.getElementById('monthFilter').value;
     const status = document.getElementById('statusFilter').value;
+    const village = document.getElementById('villageFilter').value;
     filteredTasks = allTasks.filter(t => {
       const kw = [t.id, t.name, t.cc, formatHospital(t.transportHospital),
         t.hospital?.diagnosis || ''].join(' ').toLowerCase().includes(q);
       const mo = !month || (t.time || '').startsWith(month);
       const st = !status || t.report?.status === status;
-      return kw && mo && st;
+      const vi = !village || t.village === village;
+      return kw && mo && st && vi;
     });
     currentPage = 1;
     updateKPI();
@@ -981,7 +1004,21 @@
   };
 
   // ===== Export Modal =====
-  window.openExportModal = function() { document.getElementById('exportModal').style.display = 'flex'; };
+  window.openExportModal = function() {
+    // 動態填入里別選單
+    const villages = new Set();
+    allTasks.forEach(t => { if (t.village) villages.add(t.village); });
+    const sel = document.getElementById('exp-village-filter');
+    const cur = sel.value;
+    sel.innerHTML = '<option value="">全部里別</option>';
+    [...villages].sort().forEach(v => {
+      const opt = document.createElement('option');
+      opt.value = v; opt.textContent = v;
+      if (v === cur) opt.selected = true;
+      sel.appendChild(opt);
+    });
+    document.getElementById('exportModal').style.display = 'flex';
+  };
   window.closeExportModal = function() { document.getElementById('exportModal').style.display = 'none'; };
 
   window.doExportCSV = function() {
@@ -1008,17 +1045,23 @@
 
     if (!fields.length) { alert('請至少選擇一個欄位'); return; }
 
-    // 依區間過濾
+    // 依條件過濾
+    const villageFilter = document.getElementById('exp-village-filter').value;
     let dataToExport = [...allTasks];
-    if (startDate || endDate) {
-      dataToExport = dataToExport.filter(t => {
+    
+    dataToExport = dataToExport.filter(t => {
+      // 日期區間
+      if (startDate || endDate) {
         if (!t.time) return false;
         const taskDate = t.time.slice(0, 10);
         if (startDate && taskDate < startDate) return false;
         if (endDate && taskDate > endDate) return false;
-        return true;
-      });
-    }
+      }
+      // 里別篩選
+      if (villageFilter && t.village !== villageFilter) return false;
+      
+      return true;
+    });
 
     if (!dataToExport.length) { alert('所選區間內沒有案件資料'); return; }
 
