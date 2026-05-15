@@ -471,6 +471,22 @@
   const SUPABASE_KEY = 'sb_publishable_KCjTHB1Wgm8P0t2TyzDsmw_3dZncrBf';
   const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
+  // ===== Webhook Config =====
+  const N8N_WEBHOOK_URL = 'https://chihwei-n8n.zeabur.app/webhook/Hospital_feedback'; // 替換為您的 n8n Webhook URL
+
+  async function notifyN8n(payload) {
+    if (!N8N_WEBHOOK_URL || N8N_WEBHOOK_URL === 'YOUR_N8N_WEBHOOK_URL_HERE') return;
+    try {
+      await fetch(N8N_WEBHOOK_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+    } catch (err) {
+      console.warn('n8n webhook error:', err);
+    }
+  }
+
   // ===== State =====
   let allTasks = [];
   let filteredTasks = [];
@@ -739,6 +755,17 @@
         t.hospital.disposition = disp; t.hospital.reporter = rep;
         t.hospital.updatedAt = getNowText();
       }
+
+      notifyN8n({
+        event: 'hospital_reply',
+        caseId: caseId,
+        name: t ? t.name : '未知',
+        diagnosis: diag,
+        treatment: treat,
+        disposition: disp,
+        reporter: rep,
+        updatedAt: getNowText()
+      });
       alert('儲存醫院回報成功！');
       openDrawer(dbId); // 刷新 Drawer
     }
