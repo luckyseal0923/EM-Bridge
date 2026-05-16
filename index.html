@@ -1026,11 +1026,11 @@
     const btn = document.querySelector(`#hospAction-${caseId} .btn`);
     if(btn) { btn.textContent = '儲存中...'; btn.disabled = true; }
 
-    const fileInput = document.getElementById('file-hosp-' + caseId);
+    const pending = (window.pendingFiles && window.pendingFiles['hosp'] && window.pendingFiles['hosp'][caseId]) || [];
     let newUrls = [];
-    if (fileInput && fileInput.files.length > 0) {
-      for (let i = 0; i < fileInput.files.length; i++) {
-        const url = await uploadFile(fileInput.files[i], 'hospital', caseId);
+    if (pending.length > 0) {
+      for (let i = 0; i < pending.length; i++) {
+        const url = await uploadFile(pending[i], 'hospital', caseId);
         if (url) newUrls.push(url);
       }
       if (newUrls.length === 0) { 
@@ -1066,6 +1066,9 @@
         if (newUrls.length > 0) t.hospital.attachment = JSON.stringify(newUrls);
         t.report.status = newStatus;
       }
+      if (window.pendingFiles && window.pendingFiles['hosp']) {
+        window.pendingFiles['hosp'][caseId] = [];
+      }
 
       notifyN8n({
         event: 'hospital_reply',
@@ -1090,11 +1093,11 @@
     const btn = document.querySelector(`#govAction-${caseId} .btn`);
     if(btn) { btn.textContent = '儲存中...'; btn.disabled = true; }
 
-    const fileInput = document.getElementById('file-gov-' + caseId);
+    const pending = (window.pendingFiles && window.pendingFiles['gov'] && window.pendingFiles['gov'][caseId]) || [];
     let newUrls = [];
-    if (fileInput && fileInput.files.length > 0) {
-      for (let i = 0; i < fileInput.files.length; i++) {
-        const url = await uploadFile(fileInput.files[i], 'gov', caseId);
+    if (pending.length > 0) {
+      for (let i = 0; i < pending.length; i++) {
+        const url = await uploadFile(pending[i], 'gov', caseId);
         if (url) newUrls.push(url);
       }
       if (newUrls.length === 0) { 
@@ -1121,6 +1124,9 @@
         t.report.note = note;
         t.report.status = 'reviewed';
         if (newUrls.length > 0) t.report.attachment = JSON.stringify(newUrls);
+      }
+      if (window.pendingFiles && window.pendingFiles['gov']) {
+        window.pendingFiles['gov'][caseId] = [];
       }
       alert('儲存成功！');
       window.render();
@@ -1178,6 +1184,38 @@
     const other = document.getElementById('hospitalOther');
     other.style.display = val === 'HA1' ? 'block' : 'none';
     if (val !== 'HA1') other.value = '';
+  };
+
+  // ===== Pending Files UI =====
+  window.pendingFiles = { hosp: {}, gov: {} };
+
+  window.handleFileSelect = function(event, type, caseId) {
+    const files = Array.from(event.target.files);
+    if (!window.pendingFiles[type][caseId]) window.pendingFiles[type][caseId] = [];
+    window.pendingFiles[type][caseId].push(...files);
+    event.target.value = ''; // Reset input
+    renderPendingFiles(type, caseId);
+  };
+
+  window.removePendingFile = function(type, caseId, index) {
+    window.pendingFiles[type][caseId].splice(index, 1);
+    renderPendingFiles(type, caseId);
+  };
+
+  window.renderPendingFiles = function(type, caseId) {
+    const container = document.getElementById('pending-' + type + '-' + caseId);
+    if (!container) return;
+    const pending = window.pendingFiles[type][caseId] || [];
+    if (pending.length === 0) {
+      container.innerHTML = '';
+      return;
+    }
+    container.innerHTML = pending.map((file, i) => `
+      <div style="display:flex; justify-content:space-between; align-items:center; background:#fff; border:1px solid var(--border); padding:6px 10px; border-radius:6px; margin-bottom:6px; font-size:13px;">
+        <span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:85%; color:var(--text);">${file.name}</span>
+        <button type="button" style="border:none; background:transparent; color:#ef4444; cursor:pointer; font-weight:bold; font-size:14px; padding:0 4px;" onclick="removePendingFile('${type}', '${caseId}', ${i})">✕</button>
+      </div>
+    `).join('');
   };
 
   // ===== Render =====
@@ -1268,9 +1306,17 @@
               <input id="reporter-${t.id}" value="${escapeHtml(t.hospital?.reporter || '')}" placeholder="例如：急診醫師、急診護理師" ${t.report?.status !== 'hospital' && t.hospital?.updatedAt ? 'readonly' : ''} />
               
               <div style="margin:10px 0; padding:10px; background:#f8fafc; border-radius:8px; border:1px dashed var(--border);">
-                <label style="font-size:12px; margin-bottom:6px;">上傳附件 (按住 Ctrl/Cmd 可多選)</label>
-                <input type="file" id="file-hosp-${t.id}" multiple accept="image/*,.pdf" style="padding:6px; font-size:13px; border:none; background:transparent;" ${t.report?.status !== 'hospital' && t.hospital?.updatedAt ? 'disabled' : ''} />
-                ${t.hospital?.attachment ? `<div style="font-size:12px; margin-top:8px;">目前附件: ${renderAttachments(t.hospital.attachment)}</div>` : ''}
+                <label style="font-size:12px; margin-bottom:6px; display:block; font-weight:600;">上傳新附件 (可逐一選擇)</label>
+                <input type="file" id="file-hosp-${t.id}" multiple accept="image/*,.pdf" style="padding:6px 0; font-size:13px; border:none; background:transparent; width:100%;" ${t.report?.status !== 'hospital' && t.hospital?.updatedAt ? 'disabled' : ''} onchange="handleFileSelect(event, 'hosp', '${t.id}')" />
+                <div id="pending-hosp-${t.id}" style="margin-top:8px;">
+                  ${(window.pendingFiles['hosp'][t.id] || []).map((file, i) => `
+                    <div style="display:flex; justify-content:space-between; align-items:center; background:#fff; border:1px solid var(--border); padding:6px 10px; border-radius:6px; margin-bottom:6px; font-size:13px;">
+                      <span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:85%; color:var(--text);">${file.name}</span>
+                      <button type="button" style="border:none; background:transparent; color:#ef4444; cursor:pointer; font-weight:bold; font-size:14px; padding:0 4px;" onclick="removePendingFile('hosp', '${t.id}', ${i})">✕</button>
+                    </div>
+                  `).join('')}
+                </div>
+                ${t.hospital?.attachment ? `<div style="font-size:12px; margin-top:8px;">已上傳附件: ${renderAttachments(t.hospital.attachment)}</div>` : ''}
               </div>
 
               <div class="small">最後更新：${t.hospital?.updatedAt || '尚未填寫醫療端回報'}</div>
@@ -1291,9 +1337,17 @@
               <textarea id="gov-${t.id}" placeholder="例如：已電話追蹤、安排家訪、提供衛教與資源轉介" ${t.report?.status === 'reviewed' || t.report?.status === 'closed' ? 'readonly' : ''}>${escapeHtml(t.report?.note || '')}</textarea>
               
               <div style="margin:10px 0; padding:10px; background:#f8fafc; border-radius:8px; border:1px dashed var(--border);">
-                <label style="font-size:12px; margin-bottom:6px;">上傳附件 (按住 Ctrl/Cmd 可多選)</label>
-                <input type="file" id="file-gov-${t.id}" multiple accept="image/*,.pdf" style="padding:6px; font-size:13px; border:none; background:transparent;" ${t.report?.status === 'reviewed' || t.report?.status === 'closed' ? 'disabled' : ''} />
-                ${t.report?.attachment ? `<div style="font-size:12px; margin-top:8px;">目前附件: ${renderAttachments(t.report.attachment)}</div>` : ''}
+                <label style="font-size:12px; margin-bottom:6px; display:block; font-weight:600;">上傳新附件 (可逐一選擇)</label>
+                <input type="file" id="file-gov-${t.id}" multiple accept="image/*,.pdf" style="padding:6px 0; font-size:13px; border:none; background:transparent; width:100%;" ${t.report?.status === 'reviewed' || t.report?.status === 'closed' ? 'disabled' : ''} onchange="handleFileSelect(event, 'gov', '${t.id}')" />
+                <div id="pending-gov-${t.id}" style="margin-top:8px;">
+                  ${(window.pendingFiles['gov'][t.id] || []).map((file, i) => `
+                    <div style="display:flex; justify-content:space-between; align-items:center; background:#fff; border:1px solid var(--border); padding:6px 10px; border-radius:6px; margin-bottom:6px; font-size:13px;">
+                      <span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:85%; color:var(--text);">${file.name}</span>
+                      <button type="button" style="border:none; background:transparent; color:#ef4444; cursor:pointer; font-weight:bold; font-size:14px; padding:0 4px;" onclick="removePendingFile('gov', '${t.id}', ${i})">✕</button>
+                    </div>
+                  `).join('')}
+                </div>
+                ${t.report?.attachment ? `<div style="font-size:12px; margin-top:8px;">已上傳附件: ${renderAttachments(t.report.attachment)}</div>` : ''}
               </div>
 
               <div class="small">狀態：${getStatusText(t.report?.status)}${!t.report?.note ? '｜尚未填寫衛生所回報' : ''}</div>

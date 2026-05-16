@@ -780,11 +780,11 @@
     
     btn.textContent = '儲存中...'; btn.disabled = true;
 
-    const fileInput = document.getElementById('drawer-hosp-file');
+    const pending = (window.drawerPendingFiles && window.drawerPendingFiles['hosp']) || [];
     let newUrls = [];
-    if (fileInput && fileInput.files.length > 0) {
-      for (let i = 0; i < fileInput.files.length; i++) {
-        const url = await uploadFile(fileInput.files[i], 'hospital', caseId);
+    if (pending.length > 0) {
+      for (let i = 0; i < pending.length; i++) {
+        const url = await uploadFile(pending[i], 'hospital', caseId);
         if (url) newUrls.push(url);
       }
       if (newUrls.length === 0) { 
@@ -837,11 +837,11 @@
     
     btn.textContent = '儲存中...'; btn.disabled = true;
 
-    const fileInput = document.getElementById('drawer-gov-file');
+    const pending = (window.drawerPendingFiles && window.drawerPendingFiles['gov']) || [];
     let newUrls = [];
-    if (fileInput && fileInput.files.length > 0) {
-      for (let i = 0; i < fileInput.files.length; i++) {
-        const url = await uploadFile(fileInput.files[i], 'gov', caseId);
+    if (pending.length > 0) {
+      for (let i = 0; i < pending.length; i++) {
+        const url = await uploadFile(pending[i], 'gov', caseId);
         if (url) newUrls.push(url);
       }
       if (newUrls.length === 0) { 
@@ -1031,9 +1031,44 @@
   };
 
   // ===== Drawer =====
+  window.drawerPendingFiles = { hosp: [], gov: [] };
+
+  window.handleDrawerFileSelect = function(event, type) {
+    const files = Array.from(event.target.files);
+    if (!window.drawerPendingFiles) window.drawerPendingFiles = { hosp: [], gov: [] };
+    window.drawerPendingFiles[type].push(...files);
+    event.target.value = ''; // Reset input
+    renderDrawerPendingFiles(type);
+  };
+
+  window.removeDrawerPendingFile = function(type, index) {
+    window.drawerPendingFiles[type].splice(index, 1);
+    renderDrawerPendingFiles(type);
+  };
+
+  window.renderDrawerPendingFiles = function(type) {
+    const container = document.getElementById('drawer-' + type + '-pending');
+    if (!container) return;
+    const pending = window.drawerPendingFiles[type] || [];
+    if (pending.length === 0) {
+      container.innerHTML = '';
+      return;
+    }
+    container.innerHTML = pending.map((file, i) => `
+      <div style="display:flex; justify-content:space-between; align-items:center; background:#fff; border:1px solid var(--border); padding:6px 10px; border-radius:6px; margin-bottom:6px; font-size:13px;">
+        <span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:85%; color:var(--text);">${file.name}</span>
+        <button type="button" style="border:none; background:transparent; color:#ef4444; cursor:pointer; font-weight:bold; font-size:14px; padding:0 4px;" onclick="removeDrawerPendingFile('${type}', ${i})">✕</button>
+      </div>
+    `).join('');
+  };
+
   window.openDrawer = function(dbId) {
     const t = allTasks.find(x => x.dbId === dbId);
     if (!t) return;
+    
+    // Reset pending files when opening drawer
+    window.drawerPendingFiles = { hosp: [], gov: [] };
+    
     document.getElementById('drawerContent').innerHTML = `
       <div class="drawer-title">${t.id}</div>
       <div class="drawer-sub">${getStatusText(t.report?.status)} ｜ 建立者：${t.createdByEmail || '-'}</div>
@@ -1075,9 +1110,10 @@
           </select>
           <input id="drawer-rep" value="${escapeHtml(t.hospital?.reporter)}" placeholder="回報人員" style="width:100%;margin-bottom:12px;padding:8px;border:1px solid var(--border);border-radius:8px;" />
           <div style="margin-bottom:12px; padding:10px; background:#f8fafc; border-radius:8px; border:1px dashed var(--border);">
-            <label style="font-size:12px; color:var(--muted); display:block; margin-bottom:6px; font-weight:600;">上傳附件 (按住 Ctrl/Cmd 可多選)</label>
-            <input type="file" id="drawer-hosp-file" multiple accept="image/*,.pdf" style="width:100%; font-size:13px;" />
-            ${t.hospital?.attachment ? `<div style="font-size:12px; margin-top:8px;">目前附件: ${renderAttachments(t.hospital.attachment)}</div>` : ''}
+            <label style="font-size:12px; color:var(--muted); display:block; margin-bottom:6px; font-weight:600;">上傳新附件 (可逐一選擇)</label>
+            <input type="file" id="drawer-hosp-file" multiple accept="image/*,.pdf" style="width:100%; font-size:13px;" onchange="handleDrawerFileSelect(event, 'hosp')" />
+            <div id="drawer-hosp-pending" style="margin-top:8px;"></div>
+            ${t.hospital?.attachment ? `<div style="font-size:12px; margin-top:8px;">已上傳附件: ${renderAttachments(t.hospital.attachment)}</div>` : ''}
           </div>
           <button class="btn-outline" style="width:100%;background:var(--primary);color:#fff;border:none;" onclick="saveHospitalAdmin('${t.dbId}', '${t.id}')">儲存醫院回報</button>
         </div>
@@ -1096,9 +1132,10 @@
         <div id="drawer-gov-edit" style="display:${t.report?.status === 'reviewed' || t.report?.status === 'closed' ? 'none' : 'block'};">
           <textarea id="drawer-gov-note" placeholder="衛生所處理記錄..." style="width:100%;margin-bottom:12px;padding:8px;border:1px solid var(--border);border-radius:8px;min-height:80px;">${escapeHtml(t.report?.note)}</textarea>
           <div style="margin-bottom:12px; padding:10px; background:#f8fafc; border-radius:8px; border:1px dashed var(--border);">
-            <label style="font-size:12px; color:var(--muted); display:block; margin-bottom:6px; font-weight:600;">上傳附件 (按住 Ctrl/Cmd 可多選)</label>
-            <input type="file" id="drawer-gov-file" multiple accept="image/*,.pdf" style="width:100%; font-size:13px;" />
-            ${t.report?.attachment ? `<div style="font-size:12px; margin-top:8px;">目前附件: ${renderAttachments(t.report.attachment)}</div>` : ''}
+            <label style="font-size:12px; color:var(--muted); display:block; margin-bottom:6px; font-weight:600;">上傳新附件 (可逐一選擇)</label>
+            <input type="file" id="drawer-gov-file" multiple accept="image/*,.pdf" style="width:100%; font-size:13px;" onchange="handleDrawerFileSelect(event, 'gov')" />
+            <div id="drawer-gov-pending" style="margin-top:8px;"></div>
+            ${t.report?.attachment ? `<div style="font-size:12px; margin-top:8px;">已上傳附件: ${renderAttachments(t.report.attachment)}</div>` : ''}
           </div>
           <button class="btn-outline" style="width:100%;background:var(--primary);color:#fff;border:none;" onclick="saveGovAdmin('${t.dbId}', '${t.id}')">儲存衛生所回報</button>
         </div>
