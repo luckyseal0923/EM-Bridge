@@ -742,8 +742,12 @@
     try {
       const ext = file.name.split('.').pop();
       const originalName = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
-      // Use encodeURIComponent to ensure no non-ASCII characters are in the Supabase Storage key
-      const safeName = encodeURIComponent(originalName);
+      // Supabase strictly rejects non-ASCII (Chinese) and % in storage keys. 
+      // We must strip them for the physical file name, but the real name is saved in DB.
+      let safeName = originalName.replace(/[^\x20-\x7E]/g, '').replace(/[^a-zA-Z0-9_-]/g, '_');
+      // Remove consecutive underscores and leading/trailing ones
+      safeName = safeName.replace(/_+/g, '_').replace(/^_|_$/g, '');
+      if (!safeName) safeName = 'file';
       const fileName = `${caseId}-${prefix}-${safeName}-${Date.now()}.${ext}`;
       const { data, error } = await supabase.storage.from('attachments').upload(fileName, file, {
         cacheControl: '3600',
