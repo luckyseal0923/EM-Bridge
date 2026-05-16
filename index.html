@@ -235,6 +235,19 @@
       50% { transform: scale(1.05); opacity: 0.8; }
       100% { transform: scale(1); opacity: 1; }
     }
+
+    /* Global Loading Overlay */
+    .global-spinner {
+      width: 50px;
+      height: 50px;
+      border: 5px solid rgba(255,255,255,0.3);
+      border-radius: 50%;
+      border-top-color: white;
+      animation: spin 1s ease-in-out infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
   </style>
 </head>
 <body>
@@ -517,20 +530,6 @@
     if (healEmail && healPwd) {
       window.sessionStorage.removeItem('auto_heal_email');
       window.sessionStorage.removeItem('auto_heal_pwd');
-      document.getElementById('loginEmail').value = healEmail;
-      document.getElementById('loginPassword').value = healPwd;
-      console.log('🔄 Auto-heal triggered. Attempting seamless login...');
-      if (typeof doLogin === 'function') doLogin();
-    }
-  }, 500);
-
-  // ===== Auto-Heal Seamless Re-Login =====
-  setTimeout(() => {
-    const healEmail = window.sessionStorage.getItem('auto_heal_email');
-    const healPwd = window.sessionStorage.getItem('auto_heal_pwd');
-    if (healEmail && healPwd) {
-      window.sessionStorage.removeItem('auto_heal_email');
-      window.sessionStorage.removeItem('auto_heal_pwd');
       const emailEl = document.getElementById('loginEmail');
       const pwdEl = document.getElementById('loginPassword');
       if (emailEl && pwdEl) {
@@ -599,6 +598,14 @@
 
   window.goAdmin = function() {
     window.location.href = 'admin.html';
+  };
+
+  window.showGlobalLoading = function(show, text = '資料處理中，請稍候...') {
+    const overlay = document.getElementById('globalLoadingOverlay');
+    if (overlay) {
+      document.getElementById('globalLoadingText').textContent = text;
+      overlay.style.display = show ? 'flex' : 'none';
+    }
   };
 
   window.setNowTime = function() {
@@ -926,61 +933,66 @@
 
     const btn = document.getElementById('createBtn');
     btn.disabled = true; btn.textContent = '建立中…';
+    showGlobalLoading(true, '案件建立中，請稍候...');
 
-    // 生成案號 (EMS-日期-流水號)
-    let finalCaseId = '';
-    const dateStr = time ? time.slice(0, 10).replace(/-/g, '') : getNowText().slice(0, 10).replace(/-/g, '');
-    const prefix = `EMS-${dateStr}-`;
-    
-    // 查詢當日最高號碼
-    const { data: latest } = await supabase
-      .from('cases')
-      .select('case_id')
-      .ilike('case_id', `${prefix}%`)
-      .order('case_id', { ascending: false })
-      .limit(1);
-    
-    if (latest && latest.length > 0) {
-      const lastId = latest[0].case_id;
-      const lastSeq = parseInt(lastId.slice(-2));
-      finalCaseId = prefix + String(lastSeq + 1).padStart(2, '0');
-    } else {
-      finalCaseId = prefix + '01';
+    try {
+      // 生成案號 (EMS-日期-流水號)
+      let finalCaseId = '';
+      const dateStr = time ? time.slice(0, 10).replace(/-/g, '') : getNowText().slice(0, 10).replace(/-/g, '');
+      const prefix = `EMS-${dateStr}-`;
+      
+      // 查詢當日最高號碼
+      const { data: latest } = await supabase
+        .from('cases')
+        .select('case_id')
+        .ilike('case_id', `${prefix}%`)
+        .order('case_id', { ascending: false })
+        .limit(1);
+      
+      if (latest && latest.length > 0) {
+        const lastId = latest[0].case_id;
+        const lastSeq = parseInt(lastId.slice(-2));
+        finalCaseId = prefix + String(lastSeq + 1).padStart(2, '0');
+      } else {
+        finalCaseId = prefix + '01';
+      }
+
+      const { error } = await supabase.from('cases').insert({
+        case_id: finalCaseId,
+        name: name || '未填姓名',
+        birth: birth || null,
+        gender: gender || '',
+        pid: pid || '',
+        transport_hospital_code: hospitalCode || '',
+        transport_hospital: hospitalCode === 'HA1' ? hospitalOther : hospitalCode,
+        addr: addr || '未填地址',
+        village: document.getElementById('village').value.trim() || '',
+        transport_time: time || '',
+        cc: cc || '未填主訴',
+        ems_note: emsNote || '',
+        report_status: 'hospital',
+        report_note: '',
+        created_by: currentUser ? currentUser.id : null,
+        created_by_email: currentUser ? currentUser.email : '訪客 (未登入)'
+      });
+
+      if (error) {
+        alert('建立案件失敗：' + error.message);
+      } else {
+        // 顯示成功彈窗
+        document.getElementById('caseSuccessModal').style.display = 'flex';
+
+        ['name','birth','pid','addr','village','time','cc','emsNote'].forEach(id => document.getElementById(id).value = '');
+        document.getElementById('gender').value = '';
+        document.getElementById('hospital').value = '';
+        document.getElementById('hospitalOther').style.display = 'none';
+        document.getElementById('village').readOnly = true;
+        document.getElementById('village').style.background = '#f1f5f9';
+      }
+    } finally {
+      showGlobalLoading(false);
+      btn.disabled = false; btn.textContent = '建立案件';
     }
-
-    const { error } = await supabase.from('cases').insert({
-      case_id: finalCaseId,
-      name: name || '未填姓名',
-      birth: birth || null,
-      gender: gender || '',
-      pid: pid || '',
-      transport_hospital_code: hospitalCode || '',
-      transport_hospital: hospitalCode === 'HA1' ? hospitalOther : hospitalCode,
-      addr: addr || '未填地址',
-      village: document.getElementById('village').value.trim() || '',
-      transport_time: time || '',
-      cc: cc || '未填主訴',
-      ems_note: emsNote || '',
-      report_status: 'hospital',
-      report_note: '',
-      created_by: currentUser ? currentUser.id : null,
-      created_by_email: currentUser ? currentUser.email : '訪客 (未登入)'
-    });
-
-    if (error) {
-      alert('建立案件失敗：' + error.message);
-    } else {
-      // 顯示成功彈窗
-      document.getElementById('caseSuccessModal').style.display = 'flex';
-
-      ['name','birth','pid','addr','village','time','cc','emsNote'].forEach(id => document.getElementById(id).value = '');
-      document.getElementById('gender').value = '';
-      document.getElementById('hospital').value = '';
-      document.getElementById('hospitalOther').style.display = 'none';
-      document.getElementById('village').readOnly = true;
-      document.getElementById('village').style.background = '#f1f5f9';
-    }
-    btn.disabled = false; btn.textContent = '建立案件';
   };
 
   // ===== Save Hospital Report =====
@@ -1057,68 +1069,76 @@
     
     const btn = document.querySelector(`#hospAction-${caseId} .btn`);
     if(btn) { btn.textContent = '儲存中...'; btn.disabled = true; }
-
-    const pending = (window.pendingFiles && window.pendingFiles['hosp'] && window.pendingFiles['hosp'][caseId]) || [];
-    let newUrls = [];
-    if (pending.length > 0) {
-      for (let i = 0; i < pending.length; i++) {
-        const fileObj = await uploadFile(pending[i], 'hospital', caseId, i + 1);
-        if (fileObj) newUrls.push(fileObj);
-      }
-    }
-
-    const t = allTasks.find(x => x.dbId === dbId);
-    let existing = parseAttachments(t.hospital?.attachment);
-    const removed = (window.removedExistingFiles && window.removedExistingFiles['hosp'] && window.removedExistingFiles['hosp'][caseId]) || [];
-    existing = existing.filter((_, i) => !removed.includes(i));
     
-    const finalUrls = [...existing, ...newUrls];
+    showGlobalLoading(true, '資料與附件上傳中，請稍候...');
 
-    const newStatus = (diagnosis || treatment || disposition) ? 'gov' : 'hospital';
-    const updateData = {
-      hosp_diagnosis: diagnosis, hosp_treatment: treatment,
-      hosp_disposition: disposition, hosp_reporter: reporter,
-      hosp_updated_at: getNowText(), report_status: newStatus
-    };
-    
-    updateData.hosp_attachment = finalUrls.length > 0 ? JSON.stringify(finalUrls) : null;
-
-    const { error } = await supabase.from('cases').update(updateData).eq('id', dbId);
-    if(btn) { btn.textContent = '儲存醫院回報'; btn.disabled = false; }
-    
-    if (error) {
-      alert('儲存失敗：' + error.message);
-    } else {
-      // 立即更新本地狀態，確保 UI 反應順暢
-      if (t) {
-        t.hospital.diagnosis = diagnosis;
-        t.hospital.treatment = treatment;
-        t.hospital.disposition = disposition;
-        t.hospital.reporter = reporter;
-        t.hospital.updatedAt = getNowText();
-        t.hospital.attachment = finalUrls.length > 0 ? JSON.stringify(finalUrls) : null;
-        t.report.status = newStatus;
-      }
-      if (window.pendingFiles && window.pendingFiles['hosp']) {
-        window.pendingFiles['hosp'][caseId] = [];
-      }
-      if (window.removedExistingFiles && window.removedExistingFiles['hosp']) {
-        window.removedExistingFiles['hosp'][caseId] = [];
+    try {
+      const pending = (window.pendingFiles && window.pendingFiles['hosp'] && window.pendingFiles['hosp'][caseId]) || [];
+      let newUrls = [];
+      if (pending.length > 0) {
+        for (let i = 0; i < pending.length; i++) {
+          const fileObj = await uploadFile(pending[i], 'hospital', caseId, i + 1);
+          if (fileObj) newUrls.push(fileObj);
+        }
       }
 
-      notifyN8n({
-        event: 'hospital_reply',
-        caseId: caseId,
-        name: t ? t.name : '未知',
-        diagnosis: diagnosis,
-        treatment: treatment,
-        disposition: disposition,
-        reporter: reporter,
-        attachmentUrl: t?.hospital?.attachment || '',
-        updatedAt: getNowText()
-      });
-      alert('儲存成功！');
-      window.render();
+      const t = allTasks.find(x => x.dbId === dbId);
+      let existing = parseAttachments(t.hospital?.attachment);
+      const removed = (window.removedExistingFiles && window.removedExistingFiles['hosp'] && window.removedExistingFiles['hosp'][caseId]) || [];
+      existing = existing.filter((_, i) => !removed.includes(i));
+      
+      const finalUrls = [...existing, ...newUrls];
+
+      const newStatus = (diagnosis || treatment || disposition) ? 'gov' : 'hospital';
+      const updateData = {
+        hosp_diagnosis: diagnosis, hosp_treatment: treatment,
+        hosp_disposition: disposition, hosp_reporter: reporter,
+        hosp_updated_at: getNowText(), report_status: newStatus
+      };
+      
+      updateData.hosp_attachment = finalUrls.length > 0 ? JSON.stringify(finalUrls) : null;
+
+      const { error } = await supabase.from('cases').update(updateData).eq('id', dbId);
+      
+      if (error) {
+        alert('儲存失敗：' + error.message);
+      } else {
+        // 立即更新本地狀態，確保 UI 反應順暢
+        if (t) {
+          t.hospital.diagnosis = diagnosis;
+          t.hospital.treatment = treatment;
+          t.hospital.disposition = disposition;
+          t.hospital.reporter = reporter;
+          t.hospital.updatedAt = getNowText();
+          t.hospital.attachment = finalUrls.length > 0 ? JSON.stringify(finalUrls) : null;
+          t.report.status = newStatus;
+        }
+        if (window.pendingFiles && window.pendingFiles['hosp']) {
+          window.pendingFiles['hosp'][caseId] = [];
+        }
+        if (window.removedExistingFiles && window.removedExistingFiles['hosp']) {
+          window.removedExistingFiles['hosp'][caseId] = [];
+        }
+
+        notifyN8n({
+          event: 'hospital_reply',
+          caseId: caseId,
+          name: t ? t.name : '未知',
+          diagnosis: diagnosis,
+          treatment: treatment,
+          disposition: disposition,
+          reporter: reporter,
+          attachmentUrl: t?.hospital?.attachment || '',
+          updatedAt: getNowText()
+        });
+        alert('儲存成功！');
+        window.render();
+      }
+    } catch (e) {
+      alert('發生未預期的錯誤：' + e.message);
+    } finally {
+      showGlobalLoading(false);
+      if(btn) { btn.textContent = '儲存醫院回報'; btn.disabled = false; }
     }
   };
 
@@ -1128,48 +1148,56 @@
     
     const btn = document.querySelector(`#govAction-${caseId} .btn`);
     if(btn) { btn.textContent = '儲存中...'; btn.disabled = true; }
-
-    const pending = (window.pendingFiles && window.pendingFiles['gov'] && window.pendingFiles['gov'][caseId]) || [];
-    let newUrls = [];
-    if (pending.length > 0) {
-      for (let i = 0; i < pending.length; i++) {
-        const fileObj = await uploadFile(pending[i], 'gov', caseId, i + 1);
-        if (fileObj) newUrls.push(fileObj);
-      }
-    }
-
-    const t = allTasks.find(x => x.dbId === dbId);
-    let existing = parseAttachments(t.report?.attachment);
-    const removed = (window.removedExistingFiles && window.removedExistingFiles['gov'] && window.removedExistingFiles['gov'][caseId]) || [];
-    existing = existing.filter((_, i) => !removed.includes(i));
     
-    const finalUrls = [...existing, ...newUrls];
+    showGlobalLoading(true, '資料與附件上傳中，請稍候...');
 
-    const updateData = {
-      report_note: note, report_status: 'reviewed'
-    };
-    
-    updateData.gov_attachment = finalUrls.length > 0 ? JSON.stringify(finalUrls) : null;
+    try {
+      const pending = (window.pendingFiles && window.pendingFiles['gov'] && window.pendingFiles['gov'][caseId]) || [];
+      let newUrls = [];
+      if (pending.length > 0) {
+        for (let i = 0; i < pending.length; i++) {
+          const fileObj = await uploadFile(pending[i], 'gov', caseId, i + 1);
+          if (fileObj) newUrls.push(fileObj);
+        }
+      }
 
-    const { error } = await supabase.from('cases').update(updateData).eq('id', dbId);
-    if(btn) { btn.textContent = '儲存衛生所回報'; btn.disabled = false; }
-    
-    if (error) {
-      alert('儲存失敗：' + error.message);
-    } else {
-      if (t) {
-        t.report.note = note;
-        t.report.status = 'reviewed';
-        t.report.attachment = finalUrls.length > 0 ? JSON.stringify(finalUrls) : null;
+      const t = allTasks.find(x => x.dbId === dbId);
+      let existing = parseAttachments(t.report?.attachment);
+      const removed = (window.removedExistingFiles && window.removedExistingFiles['gov'] && window.removedExistingFiles['gov'][caseId]) || [];
+      existing = existing.filter((_, i) => !removed.includes(i));
+      
+      const finalUrls = [...existing, ...newUrls];
+
+      const updateData = {
+        report_note: note, report_status: 'reviewed'
+      };
+      
+      updateData.gov_attachment = finalUrls.length > 0 ? JSON.stringify(finalUrls) : null;
+
+      const { error } = await supabase.from('cases').update(updateData).eq('id', dbId);
+      
+      if (error) {
+        alert('儲存失敗：' + error.message);
+      } else {
+        if (t) {
+          t.report.note = note;
+          t.report.status = 'reviewed';
+          t.report.attachment = finalUrls.length > 0 ? JSON.stringify(finalUrls) : null;
+        }
+        if (window.pendingFiles && window.pendingFiles['gov']) {
+          window.pendingFiles['gov'][caseId] = [];
+        }
+        if (window.removedExistingFiles && window.removedExistingFiles['gov']) {
+          window.removedExistingFiles['gov'][caseId] = [];
+        }
+        alert('儲存成功！');
+        window.render();
       }
-      if (window.pendingFiles && window.pendingFiles['gov']) {
-        window.pendingFiles['gov'][caseId] = [];
-      }
-      if (window.removedExistingFiles && window.removedExistingFiles['gov']) {
-        window.removedExistingFiles['gov'][caseId] = [];
-      }
-      alert('儲存成功！');
-      window.render();
+    } catch (e) {
+      alert('發生未預期的錯誤：' + e.message);
+    } finally {
+      showGlobalLoading(false);
+      if(btn) { btn.textContent = '儲存衛生所回報'; btn.disabled = false; }
     }
   };
 
@@ -1577,5 +1605,11 @@
     return String(str).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   }
 </script>
+
+<!-- Global Loading Overlay -->
+<div id="globalLoadingOverlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:9999; justify-content:center; align-items:center; flex-direction:column; backdrop-filter:blur(3px);">
+  <div class="global-spinner"></div>
+  <div id="globalLoadingText" style="color:white; margin-top:20px; font-size:18px; font-weight:bold; letter-spacing:1px; text-shadow: 0 2px 4px rgba(0,0,0,0.5);">資料處理中，請稍候...</div>
+</div>
 </body>
 </html>
