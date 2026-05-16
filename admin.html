@@ -656,22 +656,32 @@
       document.getElementById('appContent').style.display = 'block';
       document.getElementById('authStatus').textContent = '⌛ 驗證中...';
 
-      if (!realtimeChannel) setTimeout(() => subscribeToTasks(), 500);
+      if (!realtimeChannel) {
+        // 先暫時隱藏遮罩，確保 UI 能出來
+        document.getElementById('loginOverlay').style.display = 'none';
+        document.getElementById('appContent').style.display = 'block';
+      }
 
       try {
-        const { data: profiles, error: pe } = await supabase
+        // 使用更穩定的查詢方式，並加入逾時機制
+        const profilePromise = supabase
           .from('profiles')
           .select('id,is_active,display_name,role')
-          .eq('id', user.id);
+          .eq('id', user.id)
+          .single();
+        
+        const { data: profile, error: pe } = await Promise.race([
+          profilePromise,
+          new Promise((_, reject) => setTimeout(() => reject(new Error('驗證超時')), 5000))
+        ]);
         
         if (pe) throw pe;
-        const profile = profiles && profiles.length > 0 ? profiles[0] : null;
 
         if (!profile || !profile.is_active || (profile.role !== 'admin' && profile.role !== 'platform_admin')) {
           document.getElementById('loginOverlay').style.display = 'flex';
           document.getElementById('appContent').style.display = 'none';
           if (realtimeChannel) { try { supabase.removeChannel(realtimeChannel); } catch(e){} realtimeChannel = null; }
-          showLoginErr('權限不足，此為管理員專用頁面。請使用管理員帳號登入。');
+          showLoginErr('權限不足或帳號停用。請使用管理員帳號登入。');
           return;
         }
 
@@ -682,11 +692,14 @@
 
         const displayName = profile?.display_name || user.email;
         document.getElementById('authStatus').textContent = '✓ ' + displayName;
+        
+        // 驗證成功後再啟動訂閱
+        if (!realtimeChannel) subscribeToTasks();
       } catch (err) {
-        console.warn("驗證權限時發生錯誤:", err);
-        document.getElementById('loginOverlay').style.display = 'none';
-        document.getElementById('appContent').style.display = 'block';
-        document.getElementById('authStatus').textContent = '⚠️ 權限驗證延遲';
+        console.error("權限驗證失敗:", err);
+        document.getElementById('authStatus').textContent = '⚠️ 驗證失敗: ' + err.message;
+        // 如果是資料庫讀取失敗，嘗試繼續執行，避免管理員完全無法操作
+        if (!realtimeChannel) subscribeToTasks();
       }
     } else {
       document.getElementById('loginOverlay').style.display = 'flex';
@@ -698,24 +711,32 @@
 
   // ===== Supabase Realtime listener =====
   async function fetchAllCases() {
-    const { data, error } = await supabase
-      .from('cases')
-      .select('*')
-      .eq('is_deleted', false)
-      .order('created_at', { ascending: false });
+    // 優先查詢包含 is_deleted 的版本
+    let query = supabase.from('cases').select('*');
     
-    if (error) throw error;
-    return data;
+    // 如果資料庫還沒準備好 is_deleted 欄位，這行會報錯，我們會捕獲它
+    try {
+      const { data, error } = await query.eq('is_deleted', false).order('created_at', { ascending: false });
+      if (!error) return data;
+      
+      // 如果是因為欄位不存在報錯，則嘗試不加過濾條件的查詢
+      if (error.message.includes('is_deleted')) {
+        const { data: fallbackData, error: fe } = await supabase.from('cases').select('*').order('created_at', { ascending: false });
+        if (fe) throw fe;
+        return fallbackData;
+      }
+      throw error;
+    } catch (e) {
+      // 最後的備案：直接查詢
+      const { data, error } = await supabase.from('cases').select('*').order('created_at', { ascending: false });
+      if (error) throw error;
+      return data;
+    }
   }
 
   async function subscribeToTasks() {
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      document.getElementById('loginOverlay').style.display = 'flex';
-      document.getElementById('appContent').style.display = 'none';
-      realtimeChannel = null;
-      return;
-    }
+    if (!session) return;
     try {
       const data = await fetchAllCases();
       allTasks = data.map(mapRow);
