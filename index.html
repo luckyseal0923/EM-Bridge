@@ -987,14 +987,16 @@
   window.uploadFile = async function(file, prefix, caseId) {
     try {
       const ext = file.name.split('.').pop();
-      const fileName = `${caseId}-${prefix}-${Date.now()}.${ext}`;
+      const originalName = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
+      const safeName = originalName.replace(/[^a-zA-Z0-9_\u4e00-\u9fa5]/g, '_');
+      const fileName = `${caseId}-${prefix}-${safeName}-${Date.now()}.${ext}`;
       const { data, error } = await supabase.storage.from('attachments').upload(fileName, file, {
         cacheControl: '3600',
         upsert: false
       });
       if (error) throw error;
       const { data: publicData } = supabase.storage.from('attachments').getPublicUrl(fileName);
-      return publicData.publicUrl;
+      return { url: publicData.publicUrl, name: file.name };
     } catch (e) {
       alert('檔案上傳失敗：' + e.message + '\n\n💡 提示：請確保 Supabase 中已經建立名為「attachments」的 Public Bucket。');
       console.error(e);
@@ -1004,17 +1006,36 @@
 
   window.parseAttachments = function(val) {
     if (!val) return [];
-    if (typeof val !== 'string') return [];
-    if (val.startsWith('[')) {
-      try { return JSON.parse(val); } catch(e) { return [val]; }
+    let arr = [];
+    if (typeof val === 'string') {
+      if (val.startsWith('[')) {
+        try { arr = JSON.parse(val); } catch(e) { arr = [val]; }
+      } else {
+        arr = [val];
+      }
+    } else if (Array.isArray(val)) {
+      arr = val;
     }
-    return [val];
+    
+    return arr.map((item, idx) => {
+      if (typeof item === 'string') {
+        let name = '檔案 ' + (idx + 1);
+        try {
+          const urlObj = new URL(item);
+          const pathParts = urlObj.pathname.split('/');
+          const filePart = decodeURIComponent(pathParts[pathParts.length - 1]);
+          name = filePart;
+        } catch(e) {}
+        return { url: item, name: name };
+      }
+      return item;
+    });
   };
 
   window.renderAttachments = function(val) {
     const arr = parseAttachments(val);
     if (arr.length === 0) return '';
-    return arr.map((url, idx) => `<a href="${url}" target="_blank" style="color:var(--primary);text-decoration:underline;margin-right:8px;display:inline-block;margin-bottom:4px;">📄 檔案 ${idx+1}</a>`).join('');
+    return arr.map((item) => `<a href="${item.url}" target="_blank" style="color:var(--primary);text-decoration:underline;margin-right:8px;display:inline-block;margin-bottom:4px;">📄 ${item.name}</a>`).join('');
   };
 
   window.saveHospital = async function(dbId, caseId) {
@@ -1030,14 +1051,17 @@
     let newUrls = [];
     if (pending.length > 0) {
       for (let i = 0; i < pending.length; i++) {
-        const url = await uploadFile(pending[i], 'hospital', caseId);
-        if (url) newUrls.push(url);
-      }
-      if (newUrls.length === 0) { 
-        if(btn) { btn.textContent = '儲存醫院回報'; btn.disabled = false; }
-        return; 
+        const fileObj = await uploadFile(pending[i], 'hospital', caseId);
+        if (fileObj) newUrls.push(fileObj);
       }
     }
+
+    const t = allTasks.find(x => x.dbId === dbId);
+    let existing = parseAttachments(t.hospital?.attachment);
+    const removed = (window.removedExistingFiles && window.removedExistingFiles['hosp'] && window.removedExistingFiles['hosp'][caseId]) || [];
+    existing = existing.filter((_, i) => !removed.includes(i));
+    
+    const finalUrls = [...existing, ...newUrls];
 
     const newStatus = (diagnosis || treatment || disposition) ? 'gov' : 'hospital';
     const updateData = {
@@ -1045,9 +1069,8 @@
       hosp_disposition: disposition, hosp_reporter: reporter,
       hosp_updated_at: getNowText(), report_status: newStatus
     };
-    if (newUrls.length > 0) {
-      updateData.hosp_attachment = JSON.stringify(newUrls);
-    }
+    
+    updateData.hosp_attachment = finalUrls.length > 0 ? JSON.stringify(finalUrls) : null;
 
     const { error } = await supabase.from('cases').update(updateData).eq('id', dbId);
     if(btn) { btn.textContent = '儲存醫院回報'; btn.disabled = false; }
@@ -1056,18 +1079,20 @@
       alert('儲存失敗：' + error.message);
     } else {
       // 立即更新本地狀態，確保 UI 反應順暢
-      const t = allTasks.find(x => x.dbId === dbId);
       if (t) {
         t.hospital.diagnosis = diagnosis;
         t.hospital.treatment = treatment;
         t.hospital.disposition = disposition;
         t.hospital.reporter = reporter;
         t.hospital.updatedAt = getNowText();
-        if (newUrls.length > 0) t.hospital.attachment = JSON.stringify(newUrls);
+        t.hospital.attachment = finalUrls.length > 0 ? JSON.stringify(finalUrls) : null;
         t.report.status = newStatus;
       }
       if (window.pendingFiles && window.pendingFiles['hosp']) {
         window.pendingFiles['hosp'][caseId] = [];
+      }
+      if (window.removedExistingFiles && window.removedExistingFiles['hosp']) {
+        window.removedExistingFiles['hosp'][caseId] = [];
       }
 
       notifyN8n({
@@ -1097,21 +1122,23 @@
     let newUrls = [];
     if (pending.length > 0) {
       for (let i = 0; i < pending.length; i++) {
-        const url = await uploadFile(pending[i], 'gov', caseId);
-        if (url) newUrls.push(url);
-      }
-      if (newUrls.length === 0) { 
-        if(btn) { btn.textContent = '儲存衛生所回報'; btn.disabled = false; }
-        return; 
+        const fileObj = await uploadFile(pending[i], 'gov', caseId);
+        if (fileObj) newUrls.push(fileObj);
       }
     }
+
+    const t = allTasks.find(x => x.dbId === dbId);
+    let existing = parseAttachments(t.report?.attachment);
+    const removed = (window.removedExistingFiles && window.removedExistingFiles['gov'] && window.removedExistingFiles['gov'][caseId]) || [];
+    existing = existing.filter((_, i) => !removed.includes(i));
+    
+    const finalUrls = [...existing, ...newUrls];
 
     const updateData = {
       report_note: note, report_status: 'reviewed'
     };
-    if (newUrls.length > 0) {
-      updateData.gov_attachment = JSON.stringify(newUrls);
-    }
+    
+    updateData.gov_attachment = finalUrls.length > 0 ? JSON.stringify(finalUrls) : null;
 
     const { error } = await supabase.from('cases').update(updateData).eq('id', dbId);
     if(btn) { btn.textContent = '儲存衛生所回報'; btn.disabled = false; }
@@ -1119,14 +1146,16 @@
     if (error) {
       alert('儲存失敗：' + error.message);
     } else {
-      const t = allTasks.find(x => x.dbId === dbId);
       if (t) {
         t.report.note = note;
         t.report.status = 'reviewed';
-        if (newUrls.length > 0) t.report.attachment = JSON.stringify(newUrls);
+        t.report.attachment = finalUrls.length > 0 ? JSON.stringify(finalUrls) : null;
       }
       if (window.pendingFiles && window.pendingFiles['gov']) {
         window.pendingFiles['gov'][caseId] = [];
+      }
+      if (window.removedExistingFiles && window.removedExistingFiles['gov']) {
+        window.removedExistingFiles['gov'][caseId] = [];
       }
       alert('儲存成功！');
       window.render();
@@ -1140,6 +1169,14 @@
     document.getElementById('disp-' + caseId).disabled = false;
     const fileEl = document.getElementById('file-hosp-' + caseId);
     if(fileEl) fileEl.disabled = false;
+    
+    // Switch existing attachments to edit mode
+    const existingContainer = document.getElementById(`existing-hosp-${caseId}`);
+    if (existingContainer) {
+      const t = allTasks.find(x => x.id === caseId);
+      existingContainer.innerHTML = renderExistingAttachmentsForEdit(t.hospital.attachment, 'hosp', caseId);
+    }
+    
     document.getElementById('hospAction-' + caseId).innerHTML = `<div class="action-row"><button class="btn" onclick="saveHospital('${dbId}', '${caseId}')">儲存更新</button></div>`;
   };
 
@@ -1148,6 +1185,14 @@
     document.getElementById('gov-' + caseId).readOnly = false;
     const fileEl = document.getElementById('file-gov-' + caseId);
     if(fileEl) fileEl.disabled = false;
+    
+    // Switch existing attachments to edit mode
+    const existingContainer = document.getElementById(`existing-gov-${caseId}`);
+    if (existingContainer) {
+      const t = allTasks.find(x => x.id === caseId);
+      existingContainer.innerHTML = renderExistingAttachmentsForEdit(t.report.attachment, 'gov', caseId);
+    }
+    
     document.getElementById('govAction-' + caseId).innerHTML = `<div class="action-row"><button class="btn" onclick="saveGov('${dbId}', '${caseId}')">儲存更新</button></div>`;
   };
 
@@ -1188,6 +1233,34 @@
 
   // ===== Pending Files UI =====
   window.pendingFiles = { hosp: {}, gov: {} };
+  window.removedExistingFiles = { hosp: {}, gov: {} };
+
+  window.renderExistingAttachmentsForEdit = function(val, type, caseId) {
+    const arr = parseAttachments(val);
+    const removed = (window.removedExistingFiles[type] && window.removedExistingFiles[type][caseId]) || [];
+    
+    return arr.map((item, i) => {
+      if (removed.includes(i)) return '';
+      return `
+        <div style="display:flex; justify-content:space-between; align-items:center; background:#fff; border:1px solid var(--border); padding:6px 10px; border-radius:6px; margin-bottom:6px; font-size:13px;">
+          <a href="${item.url}" target="_blank" style="color:var(--primary); text-decoration:underline; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:85%;">${item.name}</a>
+          <button type="button" style="border:none; background:transparent; color:#ef4444; cursor:pointer; font-weight:bold; font-size:14px; padding:0 4px;" onclick="removeExistingFile('${type}', '${caseId}', ${i})">✕</button>
+        </div>
+      `;
+    }).join('');
+  };
+
+  window.removeExistingFile = function(type, caseId, index) {
+    if (!window.removedExistingFiles[type]) window.removedExistingFiles[type] = {};
+    if (!window.removedExistingFiles[type][caseId]) window.removedExistingFiles[type][caseId] = [];
+    window.removedExistingFiles[type][caseId].push(index);
+    
+    const container = document.getElementById(`existing-${type}-${caseId}`);
+    if (container) {
+      const t = allTasks.find(x => x.id === caseId);
+      container.innerHTML = renderExistingAttachmentsForEdit(type === 'hosp' ? t.hospital.attachment : t.report.attachment, type, caseId);
+    }
+  };
 
   window.handleFileSelect = function(event, type, caseId) {
     const files = Array.from(event.target.files);
@@ -1316,7 +1389,12 @@
                     </div>
                   `).join('')}
                 </div>
-                ${t.hospital?.attachment ? `<div style="font-size:12px; margin-top:8px;">已上傳附件: ${renderAttachments(t.hospital.attachment)}</div>` : ''}
+                ${t.hospital?.attachment ? `
+                  <div style="font-size:12px; margin-top:8px; margin-bottom:4px; font-weight:600;">已上傳附件:</div>
+                  <div id="existing-hosp-${t.id}">
+                    ${(t.report?.status !== 'hospital' && t.hospital?.updatedAt) ? renderAttachments(t.hospital.attachment) : renderExistingAttachmentsForEdit(t.hospital.attachment, 'hosp', t.id)}
+                  </div>
+                ` : ''}
               </div>
 
               <div class="small">最後更新：${t.hospital?.updatedAt || '尚未填寫醫療端回報'}</div>
@@ -1347,7 +1425,12 @@
                     </div>
                   `).join('')}
                 </div>
-                ${t.report?.attachment ? `<div style="font-size:12px; margin-top:8px;">已上傳附件: ${renderAttachments(t.report.attachment)}</div>` : ''}
+                ${t.report?.attachment ? `
+                  <div style="font-size:12px; margin-top:8px; margin-bottom:4px; font-weight:600;">已上傳附件:</div>
+                  <div id="existing-gov-${t.id}">
+                    ${(t.report?.status === 'reviewed' || t.report?.status === 'closed') ? renderAttachments(t.report.attachment) : renderExistingAttachmentsForEdit(t.report.attachment, 'gov', t.id)}
+                  </div>
+                ` : ''}
               </div>
 
               <div class="small">狀態：${getStatusText(t.report?.status)}${!t.report?.note ? '｜尚未填寫衛生所回報' : ''}</div>
