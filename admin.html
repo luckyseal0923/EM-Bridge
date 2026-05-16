@@ -1503,19 +1503,22 @@
       }).eq('id', profileId);
       if (error) { showErr('更新失敗：' + error.message); return; }
     } else {
-      // 新增模式：先 signUp 建立 auth 帳號
+      // 新增模式：改用 RPC 函數新增，避免管理員 session 被切換，且能自動驗證信箱
       if (!email) { showErr('請輸入 Email'); return; }
       if (password.length < 6) { showErr('密碼至少需要 6 位'); return; }
-      const { data, error } = await supabase.auth.signUp({ email, password });
-      if (error) { showErr('建立帳號失敗：' + error.message); return; }
-      if (!data?.user) { showErr('建立帳號失敗'); return; }
-      // 寫入 profiles 表
-      const { error: pe } = await supabase.from('profiles').insert({
-        id: data.user.id, email,
-        display_name: displayName || email,
-        role, unit, is_active: true
+      
+      const { data: newUserId, error: ae } = await supabase.rpc('admin_create_user', {
+        target_email: email,
+        target_password: password,
+        target_display_name: displayName || email,
+        target_role: role,
+        target_unit: unit
       });
-      if (pe) { showErr('帳號已建立但 profile 寫入失敗：' + pe.message); return; }
+
+      if (ae) { 
+        showErr('建立帳號失敗：' + ae.message); 
+        return; 
+      }
     }
     closeUserModal();
     await loadUsers();
