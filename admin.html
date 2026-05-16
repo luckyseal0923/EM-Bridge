@@ -741,14 +741,21 @@
   window.uploadFile = async function(file, prefix, caseId) {
     try {
       const ext = file.name.split('.').pop();
-      const originalName = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
-      // Supabase strictly rejects non-ASCII (Chinese) and % in storage keys. 
-      // We must strip them for the physical file name, but the real name is saved in DB.
-      let safeName = originalName.replace(/[^\x20-\x7E]/g, '').replace(/[^a-zA-Z0-9_-]/g, '_');
-      // Remove consecutive underscores and leading/trailing ones
-      safeName = safeName.replace(/_+/g, '_').replace(/^_|_$/g, '');
-      if (!safeName) safeName = 'file';
-      const fileName = `${caseId}-${prefix}-${safeName}-${Date.now()}.${ext}`;
+      
+      // Calculate Taipei Time (UTC+8)
+      const d = new Date();
+      const utc8Ms = d.getTime() + (d.getTimezoneOffset() * 60000) + (8 * 3600000);
+      const tzDate = new Date(utc8Ms);
+      const yyyy = tzDate.getFullYear();
+      const mm = String(tzDate.getMonth() + 1).padStart(2, '0');
+      const dd = String(tzDate.getDate()).padStart(2, '0');
+      const hh = String(tzDate.getHours()).padStart(2, '0');
+      const min = String(tzDate.getMinutes()).padStart(2, '0');
+      const ss = String(tzDate.getSeconds()).padStart(2, '0');
+      const ms = String(tzDate.getMilliseconds()).padStart(3, '0');
+      const timeStr = `${yyyy}${mm}${dd}_${hh}${min}${ss}_${ms}`;
+      
+      const fileName = `${caseId}-${prefix}-${timeStr}.${ext}`;
       const { data, error } = await supabase.storage.from('attachments').upload(fileName, file, {
         cacheControl: '3600',
         upsert: false
