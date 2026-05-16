@@ -898,9 +898,10 @@
         treatment: r.hosp_treatment,
         disposition: r.hosp_disposition,
         reporter: r.hosp_reporter,
-        updatedAt: r.hosp_updated_at
+        updatedAt: r.hosp_updated_at,
+        attachment: r.hosp_attachment
       },
-      report: { status: r.report_status, note: r.report_note },
+      report: { status: r.report_status, note: r.report_note, attachment: r.gov_attachment },
       createdByEmail: r.created_by_email
     };
   }
@@ -983,17 +984,73 @@
   };
 
   // ===== Save Hospital Report =====
+  window.uploadFile = async function(file, prefix, caseId) {
+    try {
+      const ext = file.name.split('.').pop();
+      const fileName = `${caseId}-${prefix}-${Date.now()}.${ext}`;
+      const { data, error } = await supabase.storage.from('attachments').upload(fileName, file, {
+        cacheControl: '3600',
+        upsert: false
+      });
+      if (error) throw error;
+      const { data: publicData } = supabase.storage.from('attachments').getPublicUrl(fileName);
+      return publicData.publicUrl;
+    } catch (e) {
+      alert('檔案上傳失敗：' + e.message + '\n\n💡 提示：請確保 Supabase 中已經建立名為「attachments」的 Public Bucket。');
+      console.error(e);
+      return null;
+    }
+  };
+
+  window.parseAttachments = function(val) {
+    if (!val) return [];
+    if (typeof val !== 'string') return [];
+    if (val.startsWith('[')) {
+      try { return JSON.parse(val); } catch(e) { return [val]; }
+    }
+    return [val];
+  };
+
+  window.renderAttachments = function(val) {
+    const arr = parseAttachments(val);
+    if (arr.length === 0) return '';
+    return arr.map((url, idx) => `<a href="${url}" target="_blank" style="color:var(--primary);text-decoration:underline;margin-right:8px;display:inline-block;margin-bottom:4px;">📄 檔案 ${idx+1}</a>`).join('');
+  };
+
   window.saveHospital = async function(dbId, caseId) {
     const diagnosis = document.getElementById('diag-' + caseId).value.trim();
     const treatment = document.getElementById('treat-' + caseId).value.trim();
     const disposition = document.getElementById('disp-' + caseId).value;
     const reporter = document.getElementById('reporter-' + caseId).value.trim();
+    
+    const btn = document.querySelector(`#hospAction-${caseId} .btn`);
+    if(btn) { btn.textContent = '儲存中...'; btn.disabled = true; }
+
+    const fileInput = document.getElementById('file-hosp-' + caseId);
+    let newUrls = [];
+    if (fileInput && fileInput.files.length > 0) {
+      for (let i = 0; i < fileInput.files.length; i++) {
+        const url = await uploadFile(fileInput.files[i], 'hospital', caseId);
+        if (url) newUrls.push(url);
+      }
+      if (newUrls.length === 0) { 
+        if(btn) { btn.textContent = '儲存醫院回報'; btn.disabled = false; }
+        return; 
+      }
+    }
+
     const newStatus = (diagnosis || treatment || disposition) ? 'gov' : 'hospital';
-    const { error } = await supabase.from('cases').update({
+    const updateData = {
       hosp_diagnosis: diagnosis, hosp_treatment: treatment,
       hosp_disposition: disposition, hosp_reporter: reporter,
       hosp_updated_at: getNowText(), report_status: newStatus
-    }).eq('id', dbId);
+    };
+    if (newUrls.length > 0) {
+      updateData.hosp_attachment = JSON.stringify(newUrls);
+    }
+
+    const { error } = await supabase.from('cases').update(updateData).eq('id', dbId);
+    if(btn) { btn.textContent = '儲存醫院回報'; btn.disabled = false; }
     
     if (error) {
       alert('儲存失敗：' + error.message);
@@ -1006,6 +1063,7 @@
         t.hospital.disposition = disposition;
         t.hospital.reporter = reporter;
         t.hospital.updatedAt = getNowText();
+        if (newUrls.length > 0) t.hospital.attachment = JSON.stringify(newUrls);
         t.report.status = newStatus;
       }
 
@@ -1017,6 +1075,7 @@
         treatment: treatment,
         disposition: disposition,
         reporter: reporter,
+        attachmentUrl: t?.hospital?.attachment || '',
         updatedAt: getNowText()
       });
       alert('儲存成功！');
@@ -1027,9 +1086,32 @@
   // ===== Save Gov Report =====
   window.saveGov = async function(dbId, caseId) {
     const note = document.getElementById('gov-' + caseId).value.trim();
-    const { error } = await supabase.from('cases').update({
+    
+    const btn = document.querySelector(`#govAction-${caseId} .btn`);
+    if(btn) { btn.textContent = '儲存中...'; btn.disabled = true; }
+
+    const fileInput = document.getElementById('file-gov-' + caseId);
+    let newUrls = [];
+    if (fileInput && fileInput.files.length > 0) {
+      for (let i = 0; i < fileInput.files.length; i++) {
+        const url = await uploadFile(fileInput.files[i], 'gov', caseId);
+        if (url) newUrls.push(url);
+      }
+      if (newUrls.length === 0) { 
+        if(btn) { btn.textContent = '儲存衛生所回報'; btn.disabled = false; }
+        return; 
+      }
+    }
+
+    const updateData = {
       report_note: note, report_status: 'reviewed'
-    }).eq('id', dbId);
+    };
+    if (newUrls.length > 0) {
+      updateData.gov_attachment = JSON.stringify(newUrls);
+    }
+
+    const { error } = await supabase.from('cases').update(updateData).eq('id', dbId);
+    if(btn) { btn.textContent = '儲存衛生所回報'; btn.disabled = false; }
     
     if (error) {
       alert('儲存失敗：' + error.message);
@@ -1038,6 +1120,7 @@
       if (t) {
         t.report.note = note;
         t.report.status = 'reviewed';
+        if (newUrls.length > 0) t.report.attachment = JSON.stringify(newUrls);
       }
       alert('儲存成功！');
       window.render();
@@ -1049,12 +1132,16 @@
     if (!confirm('確定要重新開啟編輯模式嗎？\n(為求時效，無需重新輸入密碼)')) return;
     ['diag-', 'treat-', 'reporter-'].forEach(prefix => document.getElementById(prefix + caseId).readOnly = false);
     document.getElementById('disp-' + caseId).disabled = false;
+    const fileEl = document.getElementById('file-hosp-' + caseId);
+    if(fileEl) fileEl.disabled = false;
     document.getElementById('hospAction-' + caseId).innerHTML = `<div class="action-row"><button class="btn" onclick="saveHospital('${dbId}', '${caseId}')">儲存更新</button></div>`;
   };
 
   window.unlockGov = function(caseId, dbId) {
     if (!confirm('確定要重新開啟編輯模式嗎？\n(為求時效，無需重新輸入密碼)')) return;
     document.getElementById('gov-' + caseId).readOnly = false;
+    const fileEl = document.getElementById('file-gov-' + caseId);
+    if(fileEl) fileEl.disabled = false;
     document.getElementById('govAction-' + caseId).innerHTML = `<div class="action-row"><button class="btn" onclick="saveGov('${dbId}', '${caseId}')">儲存更新</button></div>`;
   };
 
@@ -1179,6 +1266,13 @@
                 <option value="出院返家" ${t.hospital?.disposition === '出院返家' ? 'selected' : ''}>出院返家</option>
               </select>
               <input id="reporter-${t.id}" value="${escapeHtml(t.hospital?.reporter || '')}" placeholder="例如：急診醫師、急診護理師" ${t.report?.status !== 'hospital' && t.hospital?.updatedAt ? 'readonly' : ''} />
+              
+              <div style="margin:10px 0; padding:10px; background:#f8fafc; border-radius:8px; border:1px dashed var(--border);">
+                <label style="font-size:12px; margin-bottom:6px;">上傳附件 (按住 Ctrl/Cmd 可多選)</label>
+                <input type="file" id="file-hosp-${t.id}" multiple accept="image/*,.pdf" style="padding:6px; font-size:13px; border:none; background:transparent;" ${t.report?.status !== 'hospital' && t.hospital?.updatedAt ? 'disabled' : ''} />
+                ${t.hospital?.attachment ? `<div style="font-size:12px; margin-top:8px;">目前附件: ${renderAttachments(t.hospital.attachment)}</div>` : ''}
+              </div>
+
               <div class="small">最後更新：${t.hospital?.updatedAt || '尚未填寫醫療端回報'}</div>
               <div id="hospAction-${t.id}">
                 ${(t.report?.status !== 'hospital' && t.hospital?.updatedAt) ? `
@@ -1195,6 +1289,13 @@
               <div class="panel-title"><h3>衛生所回報</h3><span class="role-badge" style="background:#fef3c7;color:#92400e;">衛生所</span></div>
               <label>衛生所回報內容</label>
               <textarea id="gov-${t.id}" placeholder="例如：已電話追蹤、安排家訪、提供衛教與資源轉介" ${t.report?.status === 'reviewed' || t.report?.status === 'closed' ? 'readonly' : ''}>${escapeHtml(t.report?.note || '')}</textarea>
+              
+              <div style="margin:10px 0; padding:10px; background:#f8fafc; border-radius:8px; border:1px dashed var(--border);">
+                <label style="font-size:12px; margin-bottom:6px;">上傳附件 (按住 Ctrl/Cmd 可多選)</label>
+                <input type="file" id="file-gov-${t.id}" multiple accept="image/*,.pdf" style="padding:6px; font-size:13px; border:none; background:transparent;" ${t.report?.status === 'reviewed' || t.report?.status === 'closed' ? 'disabled' : ''} />
+                ${t.report?.attachment ? `<div style="font-size:12px; margin-top:8px;">目前附件: ${renderAttachments(t.report.attachment)}</div>` : ''}
+              </div>
+
               <div class="small">狀態：${getStatusText(t.report?.status)}${!t.report?.note ? '｜尚未填寫衛生所回報' : ''}</div>
               <div id="govAction-${t.id}">
                 ${(t.report?.status === 'reviewed' || t.report?.status === 'closed') ? `
