@@ -988,7 +988,8 @@
     try {
       const ext = file.name.split('.').pop();
       const originalName = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
-      const safeName = originalName.replace(/[^a-zA-Z0-9_\u4e00-\u9fa5]/g, '_');
+      // Use encodeURIComponent to ensure no non-ASCII characters are in the Supabase Storage key
+      const safeName = encodeURIComponent(originalName);
       const fileName = `${caseId}-${prefix}-${safeName}-${Date.now()}.${ext}`;
       const { data, error } = await supabase.storage.from('attachments').upload(fileName, file, {
         cacheControl: '3600',
