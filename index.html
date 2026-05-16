@@ -984,7 +984,7 @@
   };
 
   // ===== Save Hospital Report =====
-  window.uploadFile = async function(file, prefix, caseId) {
+  window.uploadFile = async function(file, prefix, caseId, fileIndex = 1) {
     try {
       const ext = file.name.split('.').pop();
       
@@ -998,10 +998,9 @@
       const hh = String(tzDate.getHours()).padStart(2, '0');
       const min = String(tzDate.getMinutes()).padStart(2, '0');
       const ss = String(tzDate.getSeconds()).padStart(2, '0');
-      const ms = String(tzDate.getMilliseconds()).padStart(3, '0');
-      const timeStr = `${yyyy}${mm}${dd}_${hh}${min}${ss}_${ms}`;
+      const timeStr = `${yyyy}${mm}${dd}_${hh}${min}${ss}`;
       
-      const fileName = `${caseId}-${prefix}-${timeStr}.${ext}`;
+      const fileName = `${caseId}-${prefix}-${timeStr}-${fileIndex}.${ext}`;
       const { data, error } = await supabase.storage.from('attachments').upload(fileName, file, {
         cacheControl: '3600',
         upsert: false
@@ -1063,7 +1062,7 @@
     let newUrls = [];
     if (pending.length > 0) {
       for (let i = 0; i < pending.length; i++) {
-        const fileObj = await uploadFile(pending[i], 'hospital', caseId);
+        const fileObj = await uploadFile(pending[i], 'hospital', caseId, i + 1);
         if (fileObj) newUrls.push(fileObj);
       }
     }
@@ -1134,7 +1133,7 @@
     let newUrls = [];
     if (pending.length > 0) {
       for (let i = 0; i < pending.length; i++) {
-        const fileObj = await uploadFile(pending[i], 'gov', caseId);
+        const fileObj = await uploadFile(pending[i], 'gov', caseId, i + 1);
         if (fileObj) newUrls.push(fileObj);
       }
     }
