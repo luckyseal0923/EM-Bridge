@@ -843,7 +843,7 @@
     const headers = { 'apikey': SUPABASE_KEY };
     if (token) headers['Authorization'] = `Bearer ${token}`;
     const res = await Promise.race([
-      fetch(`${SUPABASE_URL}/rest/v1/cases?select=*&order=created_at.desc`, { headers }),
+      fetch(`${SUPABASE_URL}/rest/v1/cases?select=*&is_deleted=eq.false&order=created_at.desc`, { headers }),
       new Promise((_, reject) => setTimeout(() => reject(new Error('載入逾時，請重新整理頁面')), 8000))
     ]);
     const data = await res.json();
@@ -859,6 +859,7 @@
       const { data, error } = await supabase
         .from('cases')
         .select('*')
+        .eq('is_deleted', false)
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -878,6 +879,7 @@
         const { data: fresh } = await supabase
           .from('cases')
           .select('*')
+          .eq('is_deleted', false)
           .order('created_at', { ascending: false });
         allTasks = (fresh || []).map(mapRow);
         render();
