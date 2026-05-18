@@ -265,6 +265,9 @@
 
   <!-- Cases Panel -->
   <div id="panel-cases">
+  <div class="mobile-only-notice">
+    ℹ️ 由於手機頁面顯示問題，僅顯示案件資訊。如需要完整功能，請至電腦版開啟頁面。
+  </div>
   <!-- Controls -->
   <div class="controls-bar">
 
@@ -474,6 +477,18 @@
     to { transform: rotate(360deg); }
   }
 
+  .mobile-only-notice {
+    display: none;
+    background: #eff6ff;
+    border-left: 4px solid #3b82f6;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    color: #1e3a8a;
+    line-height: 1.5;
+  }
+
   /* Responsive Adjustments */
   @media (max-width: 768px) {
     body { padding: 10px; }
@@ -484,6 +499,13 @@
     .tab-nav { padding: 0 10px; overflow-x: auto; white-space: nowrap; }
     .controls-bar { flex-direction: column; align-items: stretch; gap: 10px; }
     .controls-bar input, .controls-bar select { width: 100%; }
+
+    /* Mobile Hiding */
+    .kpi-grid { display: none !important; }
+    .tab-nav { display: none !important; }
+    .controls-bar button { display: none !important; }
+    td[data-label="選擇"] { display: none !important; }
+    .mobile-only-notice { display: block; }
 
     /* Table to Card Transformation */
     .table-wrapper { border: none; background: transparent; box-shadow: none; overflow: visible; }
