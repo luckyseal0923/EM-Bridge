@@ -265,8 +265,10 @@
 
   <!-- Cases Panel -->
   <div id="panel-cases">
-  <div class="mobile-only-notice">
-    ℹ️ 由於手機頁面顯示問題，僅顯示案件資訊。如需要完整功能，請至電腦版開啟頁面。
+  <div class="mobile-only-notice" id="mobileNotice">
+    <div style="font-weight: 600; margin-bottom: 4px; color: #1e3a8a;">📱 手機端閱讀模式</div>
+    <div style="color: #475569;">目前僅顯示案件摘要。如需使用完整帳號管理與報表功能，請切換至電腦版網頁。</div>
+    <button class="notice-close" onclick="document.getElementById('mobileNotice').style.display='none'">✕</button>
   </div>
   <!-- Controls -->
   <div class="controls-bar">
@@ -479,14 +481,25 @@
 
   .mobile-only-notice {
     display: none;
+    position: relative;
     background: #eff6ff;
     border-left: 4px solid #3b82f6;
-    padding: 12px 16px;
+    padding: 12px 32px 12px 16px;
     margin-bottom: 16px;
     border-radius: 8px;
     font-size: 13px;
-    color: #1e3a8a;
     line-height: 1.5;
+  }
+  .notice-close {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    font-size: 16px;
+    cursor: pointer;
+    padding: 4px;
   }
 
   /* Responsive Adjustments */
