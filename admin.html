@@ -486,8 +486,9 @@
     .controls-bar input, .controls-bar select { width: 100%; }
 
     /* Table to Card Transformation */
-    .table-wrapper { border: none; background: transparent; }
-    table, thead, tbody, th, td, tr { display: block; }
+    .table-wrapper { border: none; background: transparent; box-shadow: none; overflow: visible; }
+    .table-wrapper table { min-width: 0; width: 100%; }
+    table, thead, tbody, th, td, tr { display: block; box-sizing: border-box; }
     thead tr { position: absolute; top: -9999px; left: -9999px; }
     tr { 
       background: #fff; 
@@ -500,24 +501,26 @@
     }
     td { 
       border: none; 
-      padding: 8px 0 8px 40%; 
+      padding: 10px 16px 10px 40%; 
       position: relative; 
       text-align: right;
-      min-height: 36px;
+      min-height: 40px;
       display: flex;
       justify-content: flex-end;
       align-items: center;
       font-size: 14px;
+      box-sizing: border-box;
+      width: 100%;
     }
     td:before { 
       content: attr(data-label); 
       position: absolute; 
-      left: 0; 
+      left: 16px; 
       width: 35%; 
       font-weight: 600; 
       text-align: left; 
       color: var(--muted);
-      font-size: 12px;
+      font-size: 13px;
     }
     td.id-cell { font-weight: bold; color: var(--primary); font-size: 15px; }
     
