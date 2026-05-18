@@ -178,6 +178,8 @@
       animation:spin .7s linear infinite; margin:0 auto 12px; }
     @keyframes spin{ to{ transform:rotate(360deg); } }
     .empty{ text-align:center; padding:40px; color:var(--muted); }
+    .mobile-detail-td { display: none !important; }
+
 
     @media(max-width:1024px){ .controls-bar{ grid-template-columns:1fr 1fr; } .kpi-grid{ grid-template-columns:repeat(2,1fr); } }
     @media(max-width:640px){ .container{ padding:14px; } .topbar{ flex-direction:column; align-items:flex-start; } .kpi-grid{ grid-template-columns:1fr 1fr; } }
@@ -520,26 +522,99 @@
     td[data-label="選擇"] { display: none !important; }
     .mobile-only-notice { display: block; }
 
-    /* Table to Card Transformation */
+    /* Mobile Card Transformation and Expanded View */
     .table-wrapper { border: none; background: transparent; box-shadow: none; overflow: visible; }
     .table-wrapper table { min-width: 0; width: 100%; }
     table, thead, tbody, th, td, tr { display: block; box-sizing: border-box; }
     thead tr { position: absolute; top: -9999px; left: -9999px; }
+    
     tr { 
+      display: flex !important;
+      flex-direction: column;
       background: #fff; 
       margin-bottom: 16px; 
-      border-radius: 12px; 
-      box-shadow: 0 4px 12px rgba(0,0,0,0.05); 
+      border-radius: 16px; 
+      box-shadow: 0 4px 20px rgba(0,0,0,0.04); 
       border: 1px solid var(--border);
-      padding: 12px;
+      padding: 16px;
       cursor: pointer;
+      position: relative;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
+    tr:hover {
+      box-shadow: 0 6px 24px rgba(0,0,0,0.08);
+      border-color: #cbd5e1;
+    }
+    
+    tr.expanded {
+      border-color: var(--primary);
+      box-shadow: 0 10px 30px rgba(185, 28, 28, 0.08);
+      background: #fbfbfb;
+    }
+
+    /* Unexpanded mobile view: hide all td except the 6 requested ones */
     td { 
+      display: none !important;
+    }
+
+    /* Reorder and style the 6 requested fields */
+    td[data-label="通報時間"] {
+      display: flex !important;
+      order: 1;
+      border-bottom: 1px dashed var(--border);
+      padding-bottom: 10px;
+      margin-bottom: 10px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    td[data-label="案件編號"] {
+      display: flex !important;
+      order: 2;
+      font-weight: 700;
+      color: var(--primary) !important;
+      font-size: 16px;
+    }
+    td[data-label="病患姓名"] {
+      display: flex !important;
+      order: 3;
+      font-weight: 600;
+      font-size: 15px;
+    }
+    td[data-label="主訴"] {
+      display: flex !important;
+      order: 4;
+      font-size: 14px;
+    }
+    td[data-label="後送醫院"] {
+      display: flex !important;
+      order: 5;
+      font-size: 14px;
+    }
+    td[data-label="狀態"] {
+      display: flex !important;
+      order: 6;
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid var(--border);
+    }
+
+    /* Styles for mobile detail td when expanded */
+    tr.expanded .mobile-detail-td {
+      display: block !important;
+      order: 7;
+      width: 100%;
+      text-align: left;
+      padding: 16px 0 0 0 !important;
+      border-top: 1px dashed var(--border);
+      margin-top: 16px;
+    }
+
+    td[data-label] { 
       border: none; 
-      padding: 10px 16px 10px 40%; 
+      padding: 6px 0; 
       position: relative; 
       text-align: right;
-      min-height: 40px;
+      min-height: 32px;
       display: flex;
       justify-content: flex-end;
       align-items: center;
@@ -547,10 +622,10 @@
       box-sizing: border-box;
       width: 100%;
     }
-    td:before { 
+    td[data-label]::before { 
       content: attr(data-label); 
       position: absolute; 
-      left: 16px; 
+      left: 0; 
       width: 35%; 
       font-weight: 600; 
       text-align: left; 
@@ -560,10 +635,86 @@
     td.id-cell { font-weight: bold; color: var(--primary); font-size: 15px; }
     
     /* Drawer Fullscreen */
-    #drawer { width: 100%; right: -100%; border-radius: 0; }
-    #drawer.active { right: 0; }
+    #drawer { width: 100%; transform: translateX(100%); border-radius: 0; right: 0; }
+    #drawer.open { transform: translateX(0); }
     
     .action-btns { justify-content: flex-end; flex-wrap: wrap; gap: 6px; }
+
+    /* Style the expanded detail content */
+    .mobile-detail-wrapper {
+      width: 100%;
+    }
+    .m-section {
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
+      margin-bottom: 14px;
+    }
+    .m-section-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #1e293b;
+      margin-bottom: 12px;
+      border-bottom: 2px solid var(--border);
+      padding-bottom: 6px;
+    }
+    .m-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+    .m-item {
+      display: flex;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    .m-label {
+      color: var(--muted);
+      font-weight: 600;
+      min-width: 90px;
+      flex-shrink: 0;
+    }
+    .m-val {
+      color: var(--text);
+      font-weight: 500;
+      word-break: break-all;
+    }
+    .m-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 16px;
+    }
+    .m-btn-edit {
+      flex: 1;
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      padding: 12px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      text-align: center;
+      transition: background 0.2s;
+    }
+    .m-btn-edit:hover {
+      background: var(--primary-dark);
+    }
+    .m-btn-collapse {
+      background: #f1f5f9;
+      color: #475569;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 18px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: center;
+    }
+    .m-btn-collapse:hover {
+      background: #e2e8f0;
+    }
   }
 </style>
 
@@ -1092,7 +1243,7 @@
         return Math.abs(d1 - d2) <= (14 * 24 * 60 * 60 * 1000);
       });
       return `
-      <tr onclick="openDrawer('${t.dbId}')">
+      <tr onclick="handleRowClick(event, '${t.dbId}', this)">
         <td onclick="event.stopPropagation()" data-label="選擇"><input type="checkbox" class="checkbox row-check" data-fid="${t.dbId}" data-id="${t.id}" /></td>
         <td class="id-cell" data-label="案件編號">${t.id}</td>
         <td data-label="病患姓名">
@@ -1107,6 +1258,58 @@
         <td data-label="醫院動向">${t.hospital?.disposition || '-'}</td>
         <td data-label="狀態"><span class="status-badge ${statusClass(t.report?.status)}">${getStatusText(t.report?.status)}</span></td>
         <td data-label="通報時間">${formatDateTime(t.time)}</td>
+        
+        <!-- Mobile Detail Section inside the tr -->
+        <td class="mobile-detail-td" onclick="event.stopPropagation()">
+          <div class="mobile-detail-wrapper">
+            <!-- Section 1: 起單資料 -->
+            <div class="m-section">
+              <div class="m-section-title">📋 起單資料 (院前資訊)</div>
+              <div class="m-grid">
+                <div class="m-item"><span class="m-label">案件編號：</span><span class="m-val">${t.id}</span></div>
+                <div class="m-item"><span class="m-label">病患姓名：</span><span class="m-val">${t.name || '-'}</span></div>
+                <div class="m-item"><span class="m-label">性別：</span><span class="m-val">${formatGender(t.gender)}</span></div>
+                <div class="m-item"><span class="m-label">出生日期：</span><span class="m-val">${t.birth || '-'}</span></div>
+                <div class="m-item"><span class="m-label">年齡：</span><span class="m-val">${calcAge(t.birth) || '-'}</span></div>
+                <div class="m-item"><span class="m-label">身分證號：</span><span class="m-val">${maskPID(t.pid)}</span></div>
+                <div class="m-item"><span class="m-label">地址：</span><span class="m-val">${t.addr || '-'}</span></div>
+                <div class="m-item"><span class="m-label">里別：</span><span class="m-val">${t.village || '-'}</span></div>
+                <div class="m-item"><span class="m-label">通報時間：</span><span class="m-val">${formatDateTime(t.time)}</span></div>
+                <div class="m-item"><span class="m-label">主訴：</span><span class="m-val">${t.cc || '-'}</span></div>
+                <div class="m-item"><span class="m-label">後送醫院：</span><span class="m-val">${formatHospital(t.transportHospital)}</span></div>
+                <div class="m-item full-width"><span class="m-label">EMS 補充：</span><span class="m-val">${t.emsNote || '無'}</span></div>
+              </div>
+            </div>
+
+            <!-- Section 2: 醫院回覆 -->
+            <div class="m-section">
+              <div class="m-section-title">🏥 醫院回覆</div>
+              <div class="m-grid">
+                <div class="m-item"><span class="m-label">診斷：</span><span class="m-val">${t.hospital?.diagnosis || '-'}</span></div>
+                <div class="m-item"><span class="m-label">醫療動向：</span><span class="m-val">${t.hospital?.disposition || '-'}</span></div>
+                <div class="m-item"><span class="m-label">回報者：</span><span class="m-val">${t.hospital?.reporter || '-'}</span></div>
+                <div class="m-item"><span class="m-label">更新時間：</span><span class="m-val">${t.hospital?.updatedAt || '-'}</span></div>
+                <div class="m-item full-width"><span class="m-label">處置與治療：</span><span class="m-val">${t.hospital?.treatment || '-'}</span></div>
+                <div class="m-item full-width"><span class="m-label">醫院附件：</span><span class="m-val">${renderAttachments(t.hospital?.attachment)}</span></div>
+              </div>
+            </div>
+
+            <!-- Section 3: 衛生所回覆 -->
+            <div class="m-section">
+              <div class="m-section-title">🏢 衛生所回覆</div>
+              <div class="m-grid">
+                <div class="m-item full-width"><span class="m-label">回報內容：</span><span class="m-val">${t.report?.note || '-'}</span></div>
+                <div class="m-item full-width"><span class="m-label">衛生所附件：</span><span class="m-val">${renderAttachments(t.report?.attachment)}</span></div>
+              </div>
+            </div>
+
+            <!-- Actions inside Card -->
+            <div class="m-actions">
+              <button class="m-btn-edit" onclick="openDrawer('${t.dbId}')">✍️ 編輯與回報</button>
+              <button class="m-btn-collapse" onclick="toggleMobileCard(event, '${t.dbId}')">收合卡片</button>
+            </div>
+          </div>
+        </td>
       </tr>
       `;
     }).join('');
@@ -1222,6 +1425,27 @@
         <button type="button" style="border:none; background:transparent; color:#ef4444; cursor:pointer; font-weight:bold; font-size:14px; padding:0 4px;" onclick="removeDrawerPendingFile('${type}', ${i})">✕</button>
       </div>
     `).join('');
+  };
+
+  window.handleRowClick = function(event, dbId, trElement) {
+    if (event.target.closest('.checkbox') || event.target.closest('a') || event.target.closest('button')) {
+      return;
+    }
+    if (window.innerWidth <= 768) {
+      // Toggle card expanded state on mobile
+      trElement.classList.toggle('expanded');
+    } else {
+      // Open drawer on desktop
+      openDrawer(dbId);
+    }
+  };
+
+  window.toggleMobileCard = function(event, dbId) {
+    event.stopPropagation();
+    const tr = event.target.closest('tr');
+    if (tr) {
+      tr.classList.remove('expanded');
+    }
   };
 
   window.openDrawer = function(dbId) {
