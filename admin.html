@@ -1269,7 +1269,7 @@
                 <div class="m-item"><span class="m-label">案件編號：</span><span class="m-val">${t.id}</span></div>
                 <div class="m-item"><span class="m-label">病患姓名：</span><span class="m-val">${t.name || '-'}</span></div>
                 <div class="m-item"><span class="m-label">性別：</span><span class="m-val">${formatGender(t.gender)}</span></div>
-                <div class="m-item"><span class="m-label">出生日期：</span><span class="m-val">${t.birth || '-'}</span></div>
+                <div class="m-item"><span class="m-label">出生日期：</span><span class="m-val">${formatRocDate(t.birth)}</span></div>
                 <div class="m-item"><span class="m-label">年齡：</span><span class="m-val">${calcAge(t.birth) || '-'}</span></div>
                 <div class="m-item"><span class="m-label">身分證號：</span><span class="m-val">${maskPID(t.pid)}</span></div>
                 <div class="m-item"><span class="m-label">地址：</span><span class="m-val">${t.addr || '-'}</span></div>
@@ -1463,7 +1463,7 @@
       <div class="d-section">
         <h4>EMS 院前資訊</h4>
         <div class="d-row"><div class="d-label">病患姓名</div><div class="d-val">${t.name || '-'}</div></div>
-        <div class="d-row"><div class="d-label">出生日期</div><div class="d-val">${t.birth || '-'}</div></div>
+        <div class="d-row"><div class="d-label">出生日期</div><div class="d-val">${formatRocDate(t.birth)}</div></div>
         <div class="d-row"><div class="d-label">身分證號</div><div class="d-val">${maskPID(t.pid)}</div></div>
         <div class="d-row"><div class="d-label">通報時間</div><div class="d-val">${formatDateTime(t.time)}</div></div>
         <div class="d-row"><div class="d-label">地址 / 里別</div><div class="d-val">${t.addr || '-'}${t.village ? ' (' + t.village + ')' : ''}</div></div>
@@ -1682,11 +1682,24 @@
     return 'status-pending';
   }
   function calcAge(birth) {
-    if (!birth) return '';
+    if (!birth || birth === '不詳' || birth === '待確認') return '';
     const today = new Date(); const b = new Date(birth);
+    if (isNaN(b.getTime())) return '';
     let age = today.getFullYear() - b.getFullYear();
     if (today.getMonth() < b.getMonth() || (today.getMonth() === b.getMonth() && today.getDate() < b.getDate())) age--;
     return age;
+  }
+  function formatRocDate(dateStr) {
+    if (!dateStr || dateStr === '不詳' || dateStr === '待確認') return '不詳';
+    const parts = dateStr.split('-');
+    if (parts.length === 3) {
+      const year = parseInt(parts[0], 10);
+      const month = parseInt(parts[1], 10);
+      const day = parseInt(parts[2], 10);
+      const rocYear = year - 1911;
+      return `民國 ${rocYear} 年 ${month} 月 ${day} 日`;
+    }
+    return dateStr;
   }
 
   // ===== Tab Switching =====

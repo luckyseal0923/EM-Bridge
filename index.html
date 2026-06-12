@@ -357,7 +357,7 @@
           <h2>EMS 建立案件</h2>
           <div class="subtext">輸入到院前通報資料，供醫院後續接力</div>
         </div>
-        <button class="btn btn-soft" onclick="fillUnknownPatient()">快速無名氏</button>
+        <button class="btn btn-soft" onclick="openUnknownPatientModal()">快速無名氏</button>
       </div>
       <div class="form-grid">
         <div><label>病人姓名</label><input id="name" placeholder="例如：王小明"></div>
@@ -472,6 +472,88 @@
     <button onclick="document.getElementById('caseSuccessModal').style.display='none'" style="width:100%;padding:14px;background:var(--primary);color:#fff;border:none;border-radius:12px;font-size:1rem;font-weight:700;cursor:pointer;transition:background .2s;">
       確定
     </button>
+  </div>
+</div>
+
+<!-- Unknown Patient Modal -->
+<div id="unknownPatientModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:999; align-items:center; justify-content:center; backdrop-filter:blur(3px);">
+  <div style="background:#fff; border-radius:24px; padding:32px; width:500px; max-width:92vw; box-shadow:0 24px 64px rgba(0,0,0,.3); animation:fadeInUp .35s ease; max-height: 90vh; overflow-y: auto;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; border-bottom:1px solid var(--border); padding-bottom:12px;">
+      <h2 style="margin:0; font-size:1.4rem; color:#0f172a; font-weight:800; display:flex; align-items:center; gap:8px;">🚑 快速無名氏起單</h2>
+      <button onclick="closeUnknownPatientModal()" style="background:transparent; border:none; color:var(--muted); font-size:24px; cursor:pointer; padding:0; line-height:1;">✕</button>
+    </div>
+    
+    <!-- Info Section (Pre-filled Readonly) -->
+    <div style="background:#f8fafc; border:1px solid var(--border); border-radius:12px; padding:16px; margin-bottom:20px; display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+      <div>
+        <label style="font-size:12px; color:var(--muted); font-weight:600; display:block; margin-bottom:4px;">病人姓名</label>
+        <div style="font-weight:700; color:#334155;">無名氏</div>
+      </div>
+      <div>
+        <label style="font-size:12px; color:var(--muted); font-weight:600; display:block; margin-bottom:4px;">身分證字號</label>
+        <div style="font-weight:700; color:#334155;">不詳</div>
+      </div>
+      <div>
+        <label style="font-size:12px; color:var(--muted); font-weight:600; display:block; margin-bottom:4px;">出生年月日</label>
+        <div style="font-weight:700; color:#334155;">不詳</div>
+      </div>
+      <div>
+        <label style="font-size:12px; color:var(--muted); font-weight:600; display:block; margin-bottom:4px;">後送醫院</label>
+        <div style="font-weight:700; color:#334155;">H01-萬芳醫院</div>
+      </div>
+    </div>
+    
+    <!-- Required inputs -->
+    <div style="display:flex; flex-direction:column; gap:16px; text-align:left;">
+      <!-- Gender (Force selection) -->
+      <div>
+        <label style="font-size:13px; font-weight:700; color:#334155; margin-bottom:6px; display:block;">性別 *</label>
+        <select id="u_gender" style="width:100%; padding:11px 14px; border:1px solid var(--border); border-radius:12px; font-size:14px; outline:none; background:#fff;">
+          <option value="">請選擇</option>
+          <option value="M">男</option>
+          <option value="F">女</option>
+        </select>
+      </div>
+
+      <!-- dispatch address with locate -->
+      <div>
+        <label style="font-size:13px; font-weight:700; color:#334155; margin-bottom:6px; display:block;">派案地址 *</label>
+        <input id="u_addr" placeholder="例如：新北市板橋區文化路一段XXX號" style="width:100%; padding:11px 14px; border:1px solid var(--border); border-radius:12px; font-size:14px; outline:none; margin-bottom:8px;">
+        
+        <label style="font-size:12px; color:var(--muted); font-weight:600; display:block; margin-bottom:4px;">里別判定</label>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <button class="btn" style="width:auto; padding:0 20px; height:42px; white-space:nowrap; margin-bottom:0;" id="u_btnLocate" onclick="autoFillVillageUnknown()">📍 定位里別</button>
+          <input id="u_village" placeholder="由系統判定 (失敗時可手動輸入)" readonly style="flex:1; background:#f1f5f9; margin-bottom:0; padding:11px 14px; border:1px solid var(--border); border-radius:12px; font-size:14px; outline:none;">
+        </div>
+      </div>
+
+      <!-- Notify Time -->
+      <div>
+        <label style="font-size:13px; font-weight:700; color:#334155; margin-bottom:6px; display:block;">通報時間 *</label>
+        <div style="display:flex; gap:8px;">
+          <input id="u_time" type="datetime-local" style="flex:1; margin-bottom:0; padding:11px 14px; border:1px solid var(--border); border-radius:12px; font-size:14px; outline:none;">
+          <button class="btn-soft" style="width:auto; padding:0 20px; height:42px; white-space:nowrap;" onclick="setNowTimeUnknown()">現在</button>
+        </div>
+      </div>
+
+      <!-- Chief Complaint -->
+      <div>
+        <label style="font-size:13px; font-weight:700; color:#334155; margin-bottom:6px; display:block;">主訴 / 現場狀況 *</label>
+        <input id="u_cc" placeholder="例如：胸痛、呼吸困難、跌倒外傷" style="width:100%; padding:11px 14px; border:1px solid var(--border); border-radius:12px; font-size:14px; outline:none;">
+      </div>
+
+      <!-- EMS Note -->
+      <div>
+        <label style="font-size:13px; font-weight:700; color:#334155; margin-bottom:6px; display:block;">EMS 現場補充 *</label>
+        <textarea id="u_emsNote" placeholder="例如：現場生命徵象、搬運情形、處置、家屬聯絡資訊" style="width:100%; height:80px; padding:11px 14px; border:1px solid var(--border); border-radius:12px; font-size:14px; outline:none; resize:none; font-family:inherit;"></textarea>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div style="display:flex; gap:12px; margin-top:24px; border-top:1px solid var(--border); padding-top:16px;">
+      <button onclick="closeUnknownPatientModal()" style="flex:1; padding:12px; background:#f1f5f9; border:1px solid var(--border); border-radius:12px; font-size:14px; font-weight:600; color:#475569; cursor:pointer;">取消</button>
+      <button onclick="createUnknownCase()" style="flex:1; padding:12px; background:var(--primary); color:#fff; border:none; border-radius:12px; font-size:14px; font-weight:700; cursor:pointer;" id="u_createBtn">建立案件</button>
+    </div>
   </div>
 </div>
 
@@ -634,18 +716,154 @@
     }
   };
 
-  window.fillUnknownPatient = function() {
-    document.getElementById('name').value = '無名氏';
-    document.getElementById('pid').value = '不詳';
-    // Clear gender to force selection
-    document.getElementById('gender').value = '';
+  window.openUnknownPatientModal = function() {
+    document.getElementById('u_gender').value = '';
+    document.getElementById('u_addr').value = '';
+    document.getElementById('u_village').value = '';
+    document.getElementById('u_village').readOnly = true;
+    document.getElementById('u_village').style.background = '#f1f5f9';
+    document.getElementById('u_cc').value = '';
+    document.getElementById('u_emsNote').value = '';
+    window.setNowTimeUnknown();
+    document.getElementById('unknownPatientModal').style.display = 'flex';
+  };
+
+  window.closeUnknownPatientModal = function() {
+    document.getElementById('unknownPatientModal').style.display = 'none';
+  };
+
+  window.setNowTimeUnknown = function() {
+    const d = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    const localStr = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    document.getElementById('u_time').value = localStr;
+  };
+
+  window.autoFillVillageUnknown = async function() {
+    const addr = document.getElementById('u_addr').value.trim();
+    if (!addr) { alert('請先輸入地址才能定位'); return; }
     
-    // Clear birth and its display
-    document.getElementById('birth').value = '';
-    const rocDisplay = document.getElementById('rocYearDisplay');
-    if (rocDisplay) rocDisplay.textContent = '';
-    
-    window.setNowTime();
+    const GOOGLE_API_KEY = 'AIzaSyDIGc_NIVTMzKgoCwWDo6YMwRg3vz8pCPw';
+    const btn = document.getElementById('u_btnLocate');
+    const orgText = btn.textContent;
+    btn.textContent = '定位中...'; btn.disabled = true;
+    const vInput = document.getElementById('u_village');
+
+    try {
+      if (GOOGLE_API_KEY === 'YOUR_GOOGLE_MAPS_API_KEY') {
+        throw new Error('開發者尚未填寫 Google Maps API 金鑰於原始碼中');
+      }
+      const geoUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(addr)}&key=${GOOGLE_API_KEY}&language=zh-TW`;
+      const res = await fetch(geoUrl);
+      const data = await res.json();
+      
+      if (data.status !== 'OK' || !data.results.length) {
+        throw new Error('Google 無法解析此地址的座標');
+      }
+      const { lat, lng } = data.results[0].geometry.location;
+
+      const nlscUrl = `https://api.nlsc.gov.tw/other/TownVillagePointQuery/${lng}/${lat}`;
+      const resNlsc = await fetch(nlscUrl);
+      const xmlText = await resNlsc.text();
+      
+      const parser = new DOMParser();
+      const xmlDoc = parser.parseFromString(xmlText, "text/xml");
+      const villageNode = xmlDoc.getElementsByTagName("villageName")[0];
+      
+      if (!villageNode) throw new Error('政府圖資無法從該座標反查到里別');
+      
+      vInput.value = villageNode.textContent;
+      vInput.readOnly = true;
+      vInput.style.background = '#f1f5f9';
+    } catch (err) {
+      alert('定位失敗：' + err.message + '\n\n您現在可以直接手動在欄位中打字輸入里別。');
+      vInput.readOnly = false;
+      vInput.style.background = '#fff';
+    } finally {
+      btn.textContent = orgText; btn.disabled = false;
+    }
+  };
+
+  window.formatRocDate = function(dateStr) {
+    if (!dateStr || dateStr === '不詳' || dateStr === '待確認') return '不詳';
+    const parts = dateStr.split('-');
+    if (parts.length === 3) {
+      const year = parseInt(parts[0], 10);
+      const month = parseInt(parts[1], 10);
+      const day = parseInt(parts[2], 10);
+      const rocYear = year - 1911;
+      return `民國 ${rocYear} 年 ${month} 月 ${day} 日`;
+    }
+    return dateStr;
+  };
+
+  window.createUnknownCase = async function() {
+    const gender = document.getElementById('u_gender').value;
+    const addr = document.getElementById('u_addr').value.trim();
+    const time = document.getElementById('u_time').value.trim();
+    const cc = document.getElementById('u_cc').value.trim();
+    const emsNote = document.getElementById('u_emsNote').value.trim();
+    const village = document.getElementById('u_village').value.trim();
+
+    if (!gender) { alert('請選擇「性別」'); return; }
+    if (!addr) { alert('請填寫「派案地址」'); return; }
+    if (!time) { alert('請填寫「通報時間」'); return; }
+    if (!cc) { alert('請填寫「主訴 / 現場狀況」'); return; }
+    if (!emsNote) { alert('請填寫「EMS 現場補充」'); return; }
+
+    const btn = document.getElementById('u_createBtn');
+    btn.disabled = true; btn.textContent = '建立中…';
+    showGlobalLoading(true, '無名氏案件建立中，請稍候...');
+
+    try {
+      let finalCaseId = '';
+      const dateStr = time ? time.slice(0, 10).replace(/-/g, '') : getNowText().slice(0, 10).replace(/-/g, '');
+      const prefix = `EMS-${dateStr}-`;
+      
+      const { data: latest } = await supabase
+        .from('cases')
+        .select('case_id')
+        .ilike('case_id', `${prefix}%`)
+        .order('case_id', { ascending: false })
+        .limit(1);
+        
+      if (latest && latest.length > 0) {
+        const lastId = latest[0].case_id;
+        const lastSeq = parseInt(lastId.slice(-2));
+        finalCaseId = prefix + String(lastSeq + 1).padStart(2, '0');
+      } else {
+        finalCaseId = prefix + '01';
+      }
+
+      const { error } = await supabase.from('cases').insert({
+        case_id: finalCaseId,
+        name: '無名氏',
+        birth: null,
+        gender: gender || '',
+        pid: '不詳',
+        transport_hospital_code: 'H01',
+        transport_hospital: 'H01',
+        addr: addr || '未填地址',
+        village: village || '',
+        transport_time: time || '',
+        cc: cc || '未填主訴',
+        ems_note: emsNote || '',
+        report_status: 'hospital',
+        report_note: '',
+        created_by: currentUser ? currentUser.id : null,
+        created_by_email: currentUser ? currentUser.email : '訪客 (未登入)'
+      });
+
+      if (error) {
+        alert('建立無名氏案件失敗：' + error.message);
+      } else {
+        document.getElementById('caseSuccessModal').style.display = 'flex';
+        closeUnknownPatientModal();
+      }
+    } finally {
+      showGlobalLoading(false);
+      btn.disabled = false; btn.textContent = '建立案件';
+    }
   };
 
   // ===== Register =====
@@ -1427,7 +1645,7 @@
                 <span>病人</span>
                 ${hasDuplicate ? `<span style="background:#ef4444; color:#fff; font-size:10px; padding:2px 8px; border-radius:4px; font-weight:800; animation:pulse 2s infinite;">⚠️ 14D內重複</span>` : ''}
               </div>
-              <div class="value">${maskName(t.name)}｜${formatGender(t.gender)}｜${calcAge(t.birth) || '-'} 歲</div>
+              <div class="value">${maskName(t.name)}｜${formatGender(t.gender)}｜${calcAge(t.birth) ? calcAge(t.birth) + ' 歲' : '年齡不詳'}</div>
             </div>
             <div class="summary-box"><div class="label">主訴</div><div class="value">${t.cc || '-'}</div></div>
             <div class="summary-box"><div class="label">後送醫院</div><div class="value">${formatHospital(t.transportHospital)}</div></div>
@@ -1446,7 +1664,7 @@
             <div class="panel" style="grid-column:1 / -1;">
               <div class="panel-title"><h3>院前資訊（EMS）</h3><span class="role-badge role-ems">EMS</span></div>
               <div class="info-list">
-                <div class="info-item"><div class="label">基本資訊</div><div class="value">${t.birth || '-'} ｜ ${formatGender(t.gender)} ｜ ${t.pid ? maskPID(t.pid) : '-'}</div></div>
+                <div class="info-item"><div class="label">基本資訊</div><div class="value">${formatRocDate(t.birth)} ｜ ${formatGender(t.gender)} ｜ ${t.pid ? maskPID(t.pid) : '-'}</div></div>
                 <div class="info-item"><div class="label">地址 / 里別</div><div class="value">${t.addr || '-'} ${t.village ? '(' + t.village + ')' : ''}</div></div>
                 <div class="info-item"><div class="label">EMS 現場補充</div><div class="value ems-note">${t.emsNote || '無'}</div></div>
               </div>
