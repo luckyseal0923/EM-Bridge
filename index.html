@@ -357,10 +357,14 @@
           <h2>EMS 建立案件</h2>
           <div class="subtext">輸入到院前通報資料，供醫院後續接力</div>
         </div>
+        <button class="btn btn-soft" onclick="fillUnknownPatient()">快速無名氏</button>
       </div>
       <div class="form-grid">
         <div><label>病人姓名</label><input id="name" placeholder="例如：王小明"></div>
-        <div><label>出生年月日</label><input id="birth" type="date"></div>
+        <div>
+          <label>出生年月日 <span id="rocYearDisplay" style="color:var(--primary); font-weight:700; margin-left:6px;"></span></label>
+          <input id="birth" type="date" onchange="updateRocYear()">
+        </div>
         <div>
           <label>性別</label>
           <select id="gender">
@@ -371,7 +375,7 @@
         </div>
         <div><label>身分證字號</label><input id="pid" placeholder="例如：A123456789"></div>
         <div class="full">
-          <label>地址 / 居住地</label>
+          <label>派案地址</label>
           <input id="addr" placeholder="例如：新北市板橋區文化路一段XXX號">
         </div>
         <div class="full">
@@ -611,8 +615,37 @@
   window.setNowTime = function() {
     const d = new Date();
     const pad = (n) => String(n).padStart(2, '0');
-    const localStr = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    const localStr = ${d.getFullYear()}--T:;
     document.getElementById('time').value = localStr;
+  };
+
+  window.updateRocYear = function() {
+    const birthVal = document.getElementById('birth').value;
+    const display = document.getElementById('rocYearDisplay');
+    if (!birthVal) {
+      if (display) display.textContent = '';
+      return;
+    }
+    const parts = birthVal.split('-');
+    if (parts.length === 3) {
+      const year = parseInt(parts[0], 10);
+      const rocYear = year - 1911;
+      if (display) display.textContent = (民國  年);
+    }
+  };
+
+  window.fillUnknownPatient = function() {
+    document.getElementById('name').value = '無名氏';
+    document.getElementById('pid').value = '不詳';
+    // Clear gender to force selection
+    document.getElementById('gender').value = '';
+    
+    // Clear birth and its display
+    document.getElementById('birth').value = '';
+    const rocDisplay = document.getElementById('rocYearDisplay');
+    if (rocDisplay) rocDisplay.textContent = '';
+    
+    window.setNowTime();
   };
 
   // ===== Register =====
@@ -927,6 +960,20 @@
     const time = document.getElementById('time').value.trim();
     const cc = document.getElementById('cc').value.trim();
     const emsNote = document.getElementById('emsNote').value.trim();
+
+    // --- 必填驗證開始 ---
+    const isUnknown = (name === '無名氏');
+
+    if (!name) { alert('請填寫「病人姓名」'); return; }
+    if (!isUnknown && !birth) { alert('請填寫「出生年月日」'); return; }
+    if (!gender) { alert('請選擇「性別」'); return; }
+    if (!pid) { alert('請填寫「身分證字號」'); return; }
+    if (!addr) { alert('請填寫「派案地址」'); return; }
+    if (!time) { alert('請填寫「通報時間」'); return; }
+    if (!hospitalCode) { alert('請選擇「後送醫院」'); return; }
+    if (!cc) { alert('請填寫「主訴 / 現場狀況」'); return; }
+    if (!emsNote) { alert('請填寫「EMS 現場補充」'); return; }
+    // --- 必填驗證結束 ---
 
     if (birth) {
       const age = calcAge(birth);
