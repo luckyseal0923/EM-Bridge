@@ -615,7 +615,7 @@
   window.setNowTime = function() {
     const d = new Date();
     const pad = (n) => String(n).padStart(2, '0');
-    const localStr = ${d.getFullYear()}--T:;
+    const localStr = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
     document.getElementById('time').value = localStr;
   };
 
@@ -630,7 +630,7 @@
     if (parts.length === 3) {
       const year = parseInt(parts[0], 10);
       const rocYear = year - 1911;
-      if (display) display.textContent = (民國  年);
+      if (display) display.textContent = `(民國 ${rocYear} 年)`;
     }
   };
 
