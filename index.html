@@ -896,6 +896,21 @@
       } else {
         document.getElementById('caseSuccessModal').style.display = 'flex';
         closeUnknownPatientModal();
+
+        notifyN8n({
+          event: 'case_created',
+          caseId: finalCaseId,
+          name: '無名氏',
+          birth: '不詳',
+          gender: formatGender(gender),
+          pid: '不詳',
+          transportHospital: formatHospital('H01'),
+          addr: addr || '未填地址',
+          village: village || '',
+          time: formatDateTime(time),
+          cc: cc || '未填主訴',
+          emsNote: emsNote || ''
+        });
       }
     } finally {
       showGlobalLoading(false);
@@ -1291,6 +1306,21 @@
       } else {
         // 顯示成功彈窗
         document.getElementById('caseSuccessModal').style.display = 'flex';
+
+        notifyN8n({
+          event: 'case_created',
+          caseId: finalCaseId,
+          name: name || '未填姓名',
+          birth: birth ? `民國 ${birth}` : '不詳',
+          gender: formatGender(gender),
+          pid: pid || '不詳',
+          transportHospital: formatHospital(hospitalCode === 'HA1' ? hospitalOther : hospitalCode),
+          addr: addr || '未填地址',
+          village: document.getElementById('village').value.trim() || '',
+          time: formatDateTime(time),
+          cc: cc || '未填主訴',
+          emsNote: emsNote || ''
+        });
 
         ['name','birth','pid','addr','village','time','cc','emsNote'].forEach(id => document.getElementById(id).value = '');
         document.getElementById('gender').value = '';
