@@ -587,11 +587,12 @@
 
   // ===== Webhook Config =====
   const N8N_WEBHOOK_URL = 'https://chihwei-n8n.zeabur.app/webhook/Hospital_feedback'; // 替換為您的 n8n Webhook URL
+  const N8N_CREATE_CASE_WEBHOOK_URL = 'https://n8nwfh.zeabur.app/webhook/case_bulid';
 
-  async function notifyN8n(payload) {
-    if (!N8N_WEBHOOK_URL || N8N_WEBHOOK_URL === 'YOUR_N8N_WEBHOOK_URL_HERE') return;
+  async function notifyN8n(payload, url = N8N_WEBHOOK_URL) {
+    if (!url || url === 'YOUR_N8N_WEBHOOK_URL_HERE') return;
     try {
-      await fetch(N8N_WEBHOOK_URL, {
+      await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -910,7 +911,7 @@
           time: formatDateTime(time),
           cc: cc || '未填主訴',
           emsNote: emsNote || ''
-        });
+        }, N8N_CREATE_CASE_WEBHOOK_URL);
       }
     } finally {
       showGlobalLoading(false);
@@ -1320,7 +1321,7 @@
           time: formatDateTime(time),
           cc: cc || '未填主訴',
           emsNote: emsNote || ''
-        });
+        }, N8N_CREATE_CASE_WEBHOOK_URL);
 
         ['name','birth','pid','addr','village','time','cc','emsNote'].forEach(id => document.getElementById(id).value = '');
         document.getElementById('gender').value = '';
