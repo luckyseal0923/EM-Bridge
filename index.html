@@ -362,8 +362,8 @@
       <div class="form-grid">
         <div><label>病人姓名</label><input id="name" placeholder="例如：王小明"></div>
         <div>
-          <label>出生年月日 <span id="rocYearDisplay" style="color:var(--primary); font-weight:700; margin-left:6px;"></span></label>
-          <input id="birth" type="date" onchange="updateRocYear()">
+          <label>出生年月日 (民國)</label>
+          <input id="birth" placeholder="例如：79/05/20 或 0790520">
         </div>
         <div>
           <label>性別</label>
@@ -797,6 +797,43 @@
     return dateStr;
   };
 
+  window.parseRocDate = function(rocStr) {
+    if (!rocStr) return null;
+    rocStr = rocStr.trim();
+    if (rocStr === '不詳' || rocStr === '待確認') return null;
+    
+    // Accept formats: YY/MM/DD, YYY/MM/DD, YY-MM-DD, YYY-MM-DD
+    const parts = rocStr.split(/[\/\-]/);
+    if (parts.length === 3) {
+      const rocYear = parseInt(parts[0], 10);
+      const month = parseInt(parts[1], 10);
+      const day = parseInt(parts[2], 10);
+      
+      if (isNaN(rocYear) || isNaN(month) || isNaN(day)) return null;
+      if (month < 1 || month > 12) return null;
+      if (day < 1 || day > 31) return null;
+      
+      const adYear = rocYear + 1911;
+      const pad = (n) => String(n).padStart(2, '0');
+      return `${adYear}-${pad(month)}-${pad(day)}`;
+    }
+
+    // Accept formats: YYMMDD, YYYMMDD
+    if (/^\d{6,7}$/.test(rocStr)) {
+      const len = rocStr.length;
+      const rocYear = parseInt(rocStr.slice(0, len - 4), 10);
+      const month = parseInt(rocStr.slice(len - 4, len - 2), 10);
+      const day = parseInt(rocStr.slice(len - 2), 10);
+      
+      if (month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+        const adYear = rocYear + 1911;
+        const pad = (n) => String(n).padStart(2, '0');
+        return `${adYear}-${pad(month)}-${pad(day)}`;
+      }
+    }
+    return null;
+  };
+
   window.createUnknownCase = async function() {
     const gender = document.getElementById('u_gender').value;
     const addr = document.getElementById('u_addr').value.trim();
@@ -1193,9 +1230,15 @@
     if (!emsNote) { alert('請填寫「EMS 現場補充」'); return; }
     // --- 必填驗證結束 ---
 
+    let birthAD = null;
     if (birth) {
-      const age = calcAge(birth);
-      if (age < 0 || age > 120) { alert('⚠️ 出生年月日異常'); return; }
+      birthAD = window.parseRocDate(birth);
+      if (!birthAD) {
+        alert('⚠️ 出生年月日格式錯誤，請輸入民國格式，例如：79/05/20 或 0790520');
+        return;
+      }
+      const age = calcAge(birthAD);
+      if (age < 0 || age > 120) { alert('⚠️ 出生年月日年齡異常'); return; }
     }
 
     const btn = document.getElementById('createBtn');
@@ -1227,7 +1270,7 @@
       const { error } = await supabase.from('cases').insert({
         case_id: finalCaseId,
         name: name || '未填姓名',
-        birth: birth || null,
+        birth: birthAD || null,
         gender: gender || '',
         pid: pid || '',
         transport_hospital_code: hospitalCode || '',
