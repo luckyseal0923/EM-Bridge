@@ -586,7 +586,7 @@
   const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
   // ===== Webhook Config =====
-  const N8N_WEBHOOK_URL = 'https://chihwei-n8n.zeabur.app/webhook/Hospital_feedback'; // 替換為您的 n8n Webhook URL
+  const N8N_WEBHOOK_URL = 'https://n8nwfh.zeabur.app/webhook/fromhospital';
   const N8N_CREATE_CASE_WEBHOOK_URL = 'https://n8nwfh.zeabur.app/webhook/case_bulid';
 
   async function notifyN8n(payload, url = N8N_WEBHOOK_URL) {
