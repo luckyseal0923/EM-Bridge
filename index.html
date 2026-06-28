@@ -740,40 +740,42 @@
     document.getElementById('u_time').value = localStr;
   };
 
+  window.resolveVillage = async function(addr) {
+    const GOOGLE_API_KEY = 'AIzaSyDIGc_NIVTMzKgoCwWDo6YMwRg3vz8pCPw';
+    try {
+      if (!addr || GOOGLE_API_KEY === 'YOUR_GOOGLE_MAPS_API_KEY') return '';
+      const geoUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(addr)}&key=${GOOGLE_API_KEY}&language=zh-TW`;
+      const res = await fetch(geoUrl);
+      const data = await res.json();
+      if (data.status !== 'OK' || !data.results.length) return '';
+      const { lat, lng } = data.results[0].geometry.location;
+
+      const nlscUrl = `https://api.nlsc.gov.tw/other/TownVillagePointQuery/${lng}/${lat}`;
+      const resNlsc = await fetch(nlscUrl);
+      const xmlText = await resNlsc.text();
+      const parser = new DOMParser();
+      const xmlDoc = parser.parseFromString(xmlText, "text/xml");
+      const villageNode = xmlDoc.getElementsByTagName("villageName")[0];
+      return villageNode ? villageNode.textContent : '';
+    } catch (e) {
+      console.error('Auto village resolve failed:', e);
+      return '';
+    }
+  };
+
   window.autoFillVillageUnknown = async function() {
     const addr = document.getElementById('u_addr').value.trim();
     if (!addr) { alert('請先輸入地址才能定位'); return; }
     
-    const GOOGLE_API_KEY = 'AIzaSyDIGc_NIVTMzKgoCwWDo6YMwRg3vz8pCPw';
     const btn = document.getElementById('u_btnLocate');
     const orgText = btn.textContent;
     btn.textContent = '定位中...'; btn.disabled = true;
     const vInput = document.getElementById('u_village');
 
     try {
-      if (GOOGLE_API_KEY === 'YOUR_GOOGLE_MAPS_API_KEY') {
-        throw new Error('開發者尚未填寫 Google Maps API 金鑰於原始碼中');
-      }
-      const geoUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(addr)}&key=${GOOGLE_API_KEY}&language=zh-TW`;
-      const res = await fetch(geoUrl);
-      const data = await res.json();
-      
-      if (data.status !== 'OK' || !data.results.length) {
-        throw new Error('Google 無法解析此地址的座標');
-      }
-      const { lat, lng } = data.results[0].geometry.location;
-
-      const nlscUrl = `https://api.nlsc.gov.tw/other/TownVillagePointQuery/${lng}/${lat}`;
-      const resNlsc = await fetch(nlscUrl);
-      const xmlText = await resNlsc.text();
-      
-      const parser = new DOMParser();
-      const xmlDoc = parser.parseFromString(xmlText, "text/xml");
-      const villageNode = xmlDoc.getElementsByTagName("villageName")[0];
-      
-      if (!villageNode) throw new Error('政府圖資無法從該座標反查到里別');
-      
-      vInput.value = villageNode.textContent;
+      const village = await window.resolveVillage(addr);
+      if (!village) throw new Error('政府圖資無法從該座標反查到里別');
+      vInput.value = village;
       vInput.readOnly = true;
       vInput.style.background = '#f1f5f9';
     } catch (err) {
@@ -851,7 +853,19 @@
 
     const btn = document.getElementById('u_createBtn');
     btn.disabled = true; btn.textContent = '建立中…';
-    showGlobalLoading(true, '無名氏案件建立中，請稍候...');
+    showGlobalLoading(true, '無名氏案件建立中，正在自動查詢定位里別...');
+
+    let finalVillage = village;
+    if (!finalVillage) {
+      try {
+        finalVillage = await window.resolveVillage(addr);
+        if (finalVillage) {
+          document.getElementById('u_village').value = finalVillage;
+        }
+      } catch (err) {
+        console.error('Auto resolve village failed:', err);
+      }
+    }
 
     try {
       let finalCaseId = '';
@@ -882,7 +896,7 @@
         transport_hospital_code: 'H01',
         transport_hospital: 'H01',
         addr: addr || '未填地址',
-        village: village || '',
+        village: finalVillage || '',
         transport_time: time || '',
         cc: cc || '未填主訴',
         ems_note: emsNote || '',
@@ -907,7 +921,7 @@
           pid: '不詳',
           transportHospital: formatHospital('H01'),
           addr: addr || '未填地址',
-          village: village || '',
+          village: finalVillage || '',
           time: formatDateTime(time),
           cc: cc || '未填主訴',
           emsNote: emsNote || ''
@@ -1259,7 +1273,19 @@
 
     const btn = document.getElementById('createBtn');
     btn.disabled = true; btn.textContent = '建立中…';
-    showGlobalLoading(true, '案件建立中，請稍候...');
+    showGlobalLoading(true, '案件建立中，正在自動查詢定位里別...');
+
+    let finalVillage = document.getElementById('village').value.trim();
+    if (!finalVillage) {
+      try {
+        finalVillage = await window.resolveVillage(addr);
+        if (finalVillage) {
+          document.getElementById('village').value = finalVillage;
+        }
+      } catch (err) {
+        console.error('Auto resolve village failed:', err);
+      }
+    }
 
     try {
       // 生成案號 (EMS-日期-流水號)
@@ -1292,7 +1318,7 @@
         transport_hospital_code: hospitalCode || '',
         transport_hospital: hospitalCode === 'HA1' ? hospitalOther : hospitalCode,
         addr: addr || '未填地址',
-        village: document.getElementById('village').value.trim() || '',
+        village: finalVillage || '',
         transport_time: time || '',
         cc: cc || '未填主訴',
         ems_note: emsNote || '',
@@ -1317,7 +1343,7 @@
           pid: pid || '不詳',
           transportHospital: formatHospital(hospitalCode === 'HA1' ? hospitalOther : hospitalCode),
           addr: addr || '未填地址',
-          village: document.getElementById('village').value.trim() || '',
+          village: finalVillage || '',
           time: formatDateTime(time),
           cc: cc || '未填主訴',
           emsNote: emsNote || ''
@@ -1855,59 +1881,29 @@
     if (today.getMonth() < b.getMonth() || (today.getMonth() === b.getMonth() && today.getDate() < b.getDate())) age--;
     return age;
   }
-
-  // ===== Auto Village Locate =====
   window.autoFillVillage = async function() {
     const addr = document.getElementById('addr').value.trim();
     if (!addr) { alert('請先輸入地址才能定位'); return; }
     
-    // ⚠️ 這裡必填：請將下方 YOUR_GOOGLE_MAPS_API_KEY 替換成你剛剛申請的那串 AIza... 金鑰
-    const GOOGLE_API_KEY = 'AIzaSyDIGc_NIVTMzKgoCwWDo6YMwRg3vz8pCPw';
-
     const btn = document.getElementById('btnLocate');
     const orgText = btn.textContent;
     btn.textContent = '定位中...'; btn.disabled = true;
     const vInput = document.getElementById('village');
 
     try {
-      if (GOOGLE_API_KEY === 'YOUR_GOOGLE_MAPS_API_KEY') {
-        throw new Error('開發者尚未填寫 Google Maps API 金鑰於原始碼中');
-      }
-
-      // Step 1: 地址 -> 經緯度 (Google Maps)
-      const geoUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(addr)}&key=${GOOGLE_API_KEY}&language=zh-TW`;
-      const res = await fetch(geoUrl);
-      const data = await res.json();
-      
-      if (data.status !== 'OK' || !data.results.length) {
-        throw new Error('Google 無法解析此地址的座標');
-      }
-      const { lat, lng } = data.results[0].geometry.location;
-
-      // Step 2: 經緯度 -> 里別 (國土測繪圖資服務雲 NLSC API，免金鑰政府開放資料)
-      const nlscUrl = `https://api.nlsc.gov.tw/other/TownVillagePointQuery/${lng}/${lat}`;
-      const resNlsc = await fetch(nlscUrl);
-      const xmlText = await resNlsc.text();
-      
-      const parser = new DOMParser();
-      const xmlDoc = parser.parseFromString(xmlText, "text/xml");
-      const villageNode = xmlDoc.getElementsByTagName("villageName")[0];
-      
-      if (!villageNode) throw new Error('政府圖資無法從該座標反查到里別');
-      
-      vInput.value = villageNode.textContent;
+      const village = await window.resolveVillage(addr);
+      if (!village) throw new Error('政府圖資無法從該座標反查到里別');
+      vInput.value = village;
       vInput.readOnly = true;
       vInput.style.background = '#f1f5f9';
-
     } catch (err) {
       alert('定位失敗：' + err.message + '\n\n您現在可以直接手動在欄位中打字輸入里別。');
-      vInput.readOnly = false; // 失敗時解鎖，允許手動輸入
+      vInput.readOnly = false;
       vInput.style.background = '#fff';
     } finally {
       btn.textContent = orgText; btn.disabled = false;
     }
   };
-
   function maskName(name) {
     if (!name) return '';
     if (name.length === 1) return name + '○';
