@@ -300,6 +300,7 @@
       <thead>
         <tr>
           <th><input type="checkbox" class="checkbox" id="selectAll" onchange="toggleSelectAll(this.checked)" /></th>
+          <th>通報時間</th>
           <th>案件編號</th>
           <th>病患姓名</th>
           <th>性別</th>
@@ -309,7 +310,6 @@
           <th>衛生所診斷</th>
           <th>醫院動向</th>
           <th>狀態</th>
-          <th>通報時間</th>
         </tr>
       </thead>
       <tbody id="tableBody">
@@ -1245,6 +1245,7 @@
       return `
       <tr onclick="handleRowClick(event, '${t.dbId}', this)">
         <td onclick="event.stopPropagation()" data-label="選擇"><input type="checkbox" class="checkbox row-check" data-fid="${t.dbId}" data-id="${t.id}" /></td>
+        <td data-label="通報時間">${formatDateTime(t.time)}</td>
         <td class="id-cell" data-label="案件編號">${t.id}</td>
         <td data-label="病患姓名">
           ${t.name || '-'}
@@ -1257,7 +1258,6 @@
         <td data-label="醫院診斷">${t.hospital?.diagnosis || '-'}</td>
         <td data-label="醫院動向">${t.hospital?.disposition || '-'}</td>
         <td data-label="狀態"><span class="status-badge ${statusClass(t.report?.status)}">${getStatusText(t.report?.status)}</span></td>
-        <td data-label="通報時間">${formatDateTime(t.time)}</td>
         
         <!-- Mobile Detail Section inside the tr -->
         <td class="mobile-detail-td" onclick="event.stopPropagation()">
