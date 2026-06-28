@@ -1652,11 +1652,10 @@
     if (name.length === 1) return name + '○';
     return name[0] + '○' + name.slice(-1);
   }
-  function maskPID(pid) {
-    if (!pid) return '-';
-    if (pid.length < 6) return pid;
-    return pid[0] + '****' + pid.slice(-4);
-  }
+function maskPID(pid) {
+  if (!pid) return '-';
+  return pid;
+}
   function formatGender(g) {
     if (g === 'M' || g === '男') return '男';
     if (g === 'F' || g === '女') return '女';
