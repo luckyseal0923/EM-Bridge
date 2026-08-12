@@ -20,6 +20,167 @@
       font-family:-apple-system,BlinkMacSystemFont,"Noto Sans TC","Segoe UI",sans-serif; }
     .container{ max-width:1400px; margin:0 auto; padding:24px; }
 
+    /* ===== Chrome Native Datetime Picker Replica (24H Format) ===== */
+    .chrome-picker-pop {
+      display: none;
+      position: absolute;
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 12px;
+      box-shadow: 0 12px 36px rgba(15, 23, 42, 0.2);
+      z-index: 2000;
+      padding: 12px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      user-select: none;
+      align-items: stretch;
+    }
+    .cp-left {
+      width: 220px;
+      display: flex;
+      flex-direction: column;
+    }
+    .cp-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      padding: 0 2px;
+    }
+    .cp-my-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #0f172a;
+    }
+    .cp-arrows {
+      display: flex;
+      gap: 2px;
+    }
+    .cp-arrow-btn {
+      background: none;
+      border: none;
+      font-size: 16px;
+      font-weight: 700;
+      color: #334155;
+      cursor: pointer;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+    .cp-arrow-btn:hover {
+      background: #f1f5f9;
+    }
+    .cp-weekdays {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      text-align: center;
+      font-size: 12px;
+      color: #64748b;
+      margin-bottom: 6px;
+      font-weight: 600;
+    }
+    .cp-days-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 2px;
+      text-align: center;
+    }
+    .cp-day {
+      height: 28px;
+      line-height: 28px;
+      font-size: 13px;
+      border-radius: 4px;
+      cursor: pointer;
+      color: #1e293b;
+      font-weight: 500;
+    }
+    .cp-day:hover {
+      background: #e2e8f0;
+    }
+    .cp-day.other-month {
+      color: #cbd5e1;
+    }
+    .cp-day.today {
+      border: 2px solid #0f172a;
+      line-height: 24px;
+    }
+    .cp-day.selected {
+      background: #0078d4 !important;
+      color: #ffffff !important;
+      font-weight: 700;
+    }
+    .cp-footer {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 10px;
+      padding: 6px 4px 0;
+      border-top: 1px solid #f1f5f9;
+    }
+    .cp-foot-btn {
+      background: none;
+      border: none;
+      color: #0078d4;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .cp-foot-btn:hover {
+      text-decoration: underline;
+    }
+
+    .cp-divider {
+      width: 1px;
+      background: #e2e8f0;
+      margin: 0 10px;
+    }
+
+    .cp-right {
+      display: flex;
+      gap: 6px;
+    }
+    .cp-time-group {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .cp-col-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: #64748b;
+      margin-bottom: 6px;
+      height: 20px;
+      line-height: 20px;
+      text-align: center;
+    }
+    .cp-time-col {
+      width: 44px;
+      height: 190px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .cp-time-col::-webkit-scrollbar {
+      width: 0px;
+    }
+    .cp-time-item {
+      height: 30px;
+      min-height: 30px;
+      line-height: 30px;
+      text-align: center;
+      font-size: 13px;
+      font-weight: 600;
+      color: #334155;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .cp-time-item:hover {
+      background: #f1f5f9;
+    }
+    .cp-time-item.selected {
+      background: #0078d4 !important;
+      color: #ffffff !important;
+      font-weight: 700;
+    }
+
     /* ===== Login Overlay ===== */
     #loginOverlay{
       position:fixed; inset:0; background:linear-gradient(135deg,#e0f2fe,#bae6fd);
@@ -389,9 +550,9 @@
         </div>
         <div class="full">
           <label>通報時間</label>
-          <div style="display:flex; gap:8px;">
-            <input id="time" type="datetime-local" style="flex:1; margin-bottom:0;">
-            <button class="btn-soft" style="width:auto; padding:0 20px; height:42px; white-space:nowrap;" onclick="setNowTime()">現在</button>
+          <div style="display:flex; gap:8px; position:relative;">
+            <input id="time" type="text" placeholder="年 / 月 / 日  -- : --" readonly style="flex:1; margin-bottom:0; background:#fff; cursor:pointer;" onclick="toggleChromePicker('time', event)">
+            <button type="button" class="btn-soft" style="width:auto; padding:0 20px; height:42px; white-space:nowrap;" onclick="setNowTime()">現在</button>
           </div>
         </div>
         <div class="full">
@@ -530,9 +691,9 @@
       <!-- Notify Time -->
       <div>
         <label style="font-size:13px; font-weight:700; color:#334155; margin-bottom:6px; display:block;">通報時間 *</label>
-        <div style="display:flex; gap:8px;">
-          <input id="u_time" type="datetime-local" style="flex:1; margin-bottom:0; padding:11px 14px; border:1px solid var(--border); border-radius:12px; font-size:14px; outline:none;">
-          <button class="btn-soft" style="width:auto; padding:0 20px; height:42px; white-space:nowrap;" onclick="setNowTimeUnknown()">現在</button>
+        <div style="display:flex; gap:8px; position:relative;">
+          <input id="u_time" type="text" placeholder="年 / 月 / 日  -- : --" readonly style="flex:1; margin-bottom:0; padding:11px 14px; border:1px solid var(--border); border-radius:12px; font-size:14px; outline:none; background:#fff; cursor:pointer;" onclick="toggleChromePicker('u_time', event)">
+          <button type="button" class="btn-soft" style="width:auto; padding:0 20px; height:42px; white-space:nowrap;" onclick="setNowTimeUnknown()">現在</button>
         </div>
       </div>
 
@@ -553,6 +714,43 @@
     <div style="display:flex; gap:12px; margin-top:24px; border-top:1px solid var(--border); padding-top:16px;">
       <button onclick="closeUnknownPatientModal()" style="flex:1; padding:12px; background:#f1f5f9; border:1px solid var(--border); border-radius:12px; font-size:14px; font-weight:600; color:#475569; cursor:pointer;">取消</button>
       <button onclick="createUnknownCase()" style="flex:1; padding:12px; background:var(--primary); color:#fff; border:none; border-radius:12px; font-size:14px; font-weight:700; cursor:pointer;" id="u_createBtn">建立案件</button>
+    </div>
+  </div>
+</div>
+
+<!-- Native Chrome Replica Datetime Picker Popup (24H Format) -->
+<div id="chromePickerPopup" class="chrome-picker-pop" onclick="event.stopPropagation()">
+  <!-- Left Side: Calendar Grid -->
+  <div class="cp-left">
+    <div class="cp-header">
+      <span id="cpMonthYearText" class="cp-my-title">2026年08月 ▼</span>
+      <div class="cp-arrows">
+        <button type="button" class="cp-arrow-btn" onclick="cpChangeMonth(-1)">↑</button>
+        <button type="button" class="cp-arrow-btn" onclick="cpChangeMonth(1)">↓</button>
+      </div>
+    </div>
+    <div class="cp-weekdays">
+      <span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span>
+    </div>
+    <div class="cp-days-grid" id="cpDaysGrid"></div>
+    <div class="cp-footer">
+      <button type="button" class="cp-foot-btn" onclick="cpClear()">清除</button>
+      <button type="button" class="cp-foot-btn" onclick="cpToday()">今天</button>
+    </div>
+  </div>
+
+  <!-- Middle Divider -->
+  <div class="cp-divider"></div>
+
+  <!-- Right Side: 24h Time Columns with 時/分 headers -->
+  <div class="cp-right">
+    <div class="cp-time-group">
+      <div class="cp-col-title">時</div>
+      <div class="cp-time-col" id="cpHourCol"></div>
+    </div>
+    <div class="cp-time-group">
+      <div class="cp-col-title">分</div>
+      <div class="cp-time-col" id="cpMinCol"></div>
     </div>
   </div>
 </div>
@@ -695,11 +893,186 @@
     }
   };
 
+  /* ===== Chrome Native Datetime Picker Replica JS Engine ===== */
+  let cpCurrentTargetId = null;
+  let cpDate = new Date();
+  let cpViewYear = cpDate.getFullYear();
+  let cpViewMonth = cpDate.getMonth();
+
+  window.toggleChromePicker = function(targetId, evt) {
+    if (evt) evt.stopPropagation();
+    const pop = document.getElementById('chromePickerPopup');
+    if (pop.style.display === 'flex' && cpCurrentTargetId === targetId) {
+      pop.style.display = 'none';
+      return;
+    }
+
+    cpCurrentTargetId = targetId;
+    const inputEl = document.getElementById(targetId);
+    const val = inputEl.value.trim();
+
+    if (val) {
+      const match = val.match(/^(\d{4})[/-](\d{2})[/-](\d{2})[T ](\d{2}):(\d{2})/);
+      if (match) {
+        cpDate = new Date(parseInt(match[1]), parseInt(match[2])-1, parseInt(match[3]), parseInt(match[4]), parseInt(match[5]));
+      } else {
+        cpDate = new Date();
+      }
+    } else {
+      cpDate = new Date();
+    }
+
+    cpViewYear = cpDate.getFullYear();
+    cpViewMonth = cpDate.getMonth();
+
+    renderChromePicker();
+
+    const rect = inputEl.getBoundingClientRect();
+    pop.style.top = (window.scrollY + rect.bottom + 6) + 'px';
+    pop.style.left = (window.scrollX + rect.left) + 'px';
+    pop.style.display = 'flex';
+  };
+
+  document.addEventListener('click', function(e) {
+    const pop = document.getElementById('chromePickerPopup');
+    if (pop && pop.style.display === 'flex') {
+      if (!pop.contains(e.target) && e.target.id !== 'time' && e.target.id !== 'u_time') {
+        pop.style.display = 'none';
+      }
+    }
+  });
+
+  window.renderChromePicker = function() {
+    const pad = (n) => String(n).padStart(2, '0');
+    document.getElementById('cpMonthYearText').textContent = `${cpViewYear}年${pad(cpViewMonth + 1)}月 ▼`;
+
+    const grid = document.getElementById('cpDaysGrid');
+    grid.innerHTML = '';
+
+    const firstDay = new Date(cpViewYear, cpViewMonth, 1).getDay();
+    const daysInMonth = new Date(cpViewYear, cpViewMonth + 1, 0).getDate();
+    const prevMonthDays = new Date(cpViewYear, cpViewMonth, 0).getDate();
+
+    const today = new Date();
+    const isCurrentMonthView = (today.getFullYear() === cpViewYear && today.getMonth() === cpViewMonth);
+
+    for (let i = firstDay - 1; i >= 0; i--) {
+      const dEl = document.createElement('div');
+      dEl.className = 'cp-day other-month';
+      dEl.textContent = prevMonthDays - i;
+      grid.appendChild(dEl);
+    }
+
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dEl = document.createElement('div');
+      const isToday = isCurrentMonthView && (today.getDate() === d);
+      const isSelected = (cpDate.getFullYear() === cpViewYear && cpDate.getMonth() === cpViewMonth && cpDate.getDate() === d);
+
+      dEl.className = `cp-day ${isToday ? 'today' : ''} ${isSelected ? 'selected' : ''}`;
+      dEl.textContent = d;
+      dEl.onclick = () => {
+        cpDate.setFullYear(cpViewYear, cpViewMonth, d);
+        updateCpInput();
+        renderChromePicker();
+      };
+      grid.appendChild(dEl);
+    }
+
+    const totalCells = firstDay + daysInMonth;
+    const remaining = (7 - (totalCells % 7)) % 7;
+    for (let i = 1; i <= remaining; i++) {
+      const dEl = document.createElement('div');
+      dEl.className = 'cp-day other-month';
+      dEl.textContent = i;
+      grid.appendChild(dEl);
+    }
+
+    // Render Hours Col (00 to 23 - NO AM/PM!)
+    const hCol = document.getElementById('cpHourCol');
+    hCol.innerHTML = '';
+    const selH = cpDate.getHours();
+    for (let h = 0; h < 24; h++) {
+      const item = document.createElement('div');
+      item.className = `cp-time-item ${h === selH ? 'selected' : ''}`;
+      item.textContent = pad(h);
+      item.onclick = () => {
+        cpDate.setHours(h);
+        updateCpInput();
+        renderChromePicker();
+      };
+      hCol.appendChild(item);
+    }
+
+    // Render Minutes Col (00 to 59)
+    const mCol = document.getElementById('cpMinCol');
+    mCol.innerHTML = '';
+    const selM = cpDate.getMinutes();
+    for (let m = 0; m < 60; m++) {
+      const item = document.createElement('div');
+      item.className = `cp-time-item ${m === selM ? 'selected' : ''}`;
+      item.textContent = pad(m);
+      item.onclick = () => {
+        cpDate.setMinutes(m);
+        updateCpInput();
+        renderChromePicker();
+      };
+      mCol.appendChild(item);
+    }
+
+    setTimeout(() => {
+      const activeH = hCol.querySelector('.cp-time-item.selected');
+      if (activeH) activeH.scrollIntoView({ block: 'nearest' });
+      const activeM = mCol.querySelector('.cp-time-item.selected');
+      if (activeM) activeM.scrollIntoView({ block: 'nearest' });
+    }, 20);
+  };
+
+  window.cpChangeMonth = function(delta) {
+    cpViewMonth += delta;
+    if (cpViewMonth < 0) {
+      cpViewMonth = 11;
+      cpViewYear--;
+    } else if (cpViewMonth > 11) {
+      cpViewMonth = 0;
+      cpViewYear++;
+    }
+    renderChromePicker();
+  };
+
+  window.cpToday = function() {
+    cpDate = new Date();
+    cpViewYear = cpDate.getFullYear();
+    cpViewMonth = cpDate.getMonth();
+    updateCpInput();
+    renderChromePicker();
+  };
+
+  window.cpClear = function() {
+    if (cpCurrentTargetId) {
+      document.getElementById(cpCurrentTargetId).value = '';
+    }
+    document.getElementById('chromePickerPopup').style.display = 'none';
+  };
+
+  window.updateCpInput = function() {
+    if (!cpCurrentTargetId) return;
+    const pad = (n) => String(n).padStart(2, '0');
+    const str = `${cpDate.getFullYear()}-${pad(cpDate.getMonth()+1)}-${pad(cpDate.getDate())} ${pad(cpDate.getHours())}:${pad(cpDate.getMinutes())}`;
+    document.getElementById(cpCurrentTargetId).value = str;
+  };
+
   window.setNowTime = function() {
     const d = new Date();
     const pad = (n) => String(n).padStart(2, '0');
-    const localStr = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    const localStr = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
     document.getElementById('time').value = localStr;
+  };
+
+  window.setNowTimeUnknown = function() {
+    const d = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    const localStr = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    document.getElementById('u_time').value = localStr;
   };
 
   window.updateRocYear = function() {
