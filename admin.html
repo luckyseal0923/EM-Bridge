@@ -275,7 +275,7 @@
   <!-- Controls -->
   <div class="controls-bar">
 
-    <input type="text" id="searchInput" placeholder="搜尋案件編號 / 姓名 / 主訴 / 醫院" oninput="applyFilter()" />
+    <input type="text" id="searchInput" placeholder="搜尋案件編號 / 姓名 / 身分證 / 主訴 / 醫院" oninput="applyFilter()" />
     <select id="monthFilter" onchange="applyFilter()">
       <option value="">全部月份</option>
     </select>
@@ -1199,13 +1199,23 @@
   }
 
   window.applyFilter = function() {
-    const q = (document.getElementById('searchInput').value || '').toLowerCase();
+    const q = (document.getElementById('searchInput').value || '').toLowerCase().trim();
     const month = document.getElementById('monthFilter').value;
     const status = document.getElementById('statusFilter').value;
     const village = document.getElementById('villageFilter').value;
     filteredTasks = allTasks.filter(t => {
-      const kw = [t.id, t.name, t.cc, formatHospital(t.transportHospital),
-        t.hospital?.diagnosis || ''].join(' ').toLowerCase().includes(q);
+      const kw = [
+        t.id, 
+        t.name, 
+        t.pid || '', 
+        t.addr || '', 
+        t.village || '', 
+        t.cc, 
+        formatHospital(t.transportHospital),
+        t.hospital?.diagnosis || '',
+        t.hospital?.reporter || '',
+        t.report?.note || ''
+      ].join(' ').toLowerCase().includes(q);
       const mo = !month || (t.time || '').startsWith(month);
       const st = !status || t.report?.status === status;
       const vi = !village || t.village === village;

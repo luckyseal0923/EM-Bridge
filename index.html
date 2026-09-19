@@ -533,9 +533,11 @@
             <option value="M">男</option>
             <option value="F">女</option>
           </select>
-        </div>
-        <div><label>身分證字號</label><input id="pid" placeholder="例如：A123456789"></div>
         <div class="full">
+          <label>身分證字號</label>
+          <input id="pid" placeholder="例如：A123456789" oninput="handlePidInput(this.value)" onblur="handlePidInput(this.value)">
+          <div id="pidTipBox" style="display:none; margin-top:8px;"></div>
+        </div>
           <label>派案地址</label>
           <input id="addr" placeholder="例如：新北市板橋區文化路一段XXX號">
         </div>
@@ -591,7 +593,7 @@
         </div>
       </div>
       <div class="filters">
-        <input id="searchInput" placeholder="搜尋案件編號 / 姓名 / 主訴 / 地址" oninput="render()">
+        <input id="searchInput" placeholder="搜尋案件編號 / 姓名 / 身分證 / 主訴 / 地址" oninput="render()">
         <select id="statusFilter" onchange="render()">
           <option value="">全部狀態</option>
           <option value="hospital">待醫院回報</option>
@@ -621,6 +623,36 @@
       立即登入 →
     </button>
     <button onclick="closeRegSuccessModal()" style="margin-top:10px;width:100%;padding:11px;background:transparent;border:1px solid #e2e8f0;border-radius:10px;font-size:.9rem;color:#64748b;cursor:pointer;">稍後再登入</button>
+  </div>
+</div>
+
+<!-- Duplicate Warning Modal -->
+<div id="duplicateWarningModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:1000; align-items:center; justify-content:center; backdrop-filter:blur(3px);">
+  <div style="background:#fff; border-radius:24px; padding:28px 32px; width:520px; max-width:92vw; box-shadow:0 24px 64px rgba(0,0,0,.3); text-align:left; animation:fadeInUp .3s ease;">
+    <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
+      <div style="font-size:32px; line-height:1;">⚠️</div>
+      <h3 style="margin:0; font-size:1.3rem; color:#b91c1c; font-weight:800;">注意：疑似同日重複起單！</h3>
+    </div>
+    <p style="color:#475569; font-size:14px; line-height:1.6; margin:0 0 14px;">
+      系統偵測到此病患（<strong id="dupModalPatientName" style="color:#0f172a;"></strong>）在 24 小時內已有救護通報案件：
+    </p>
+    <div style="background:#fef2f2; border:1px solid #fecaca; border-radius:12px; padding:14px; margin-bottom:16px; font-size:13px; color:#991b1b; line-height:1.7;">
+      <div>• <strong>現有案號</strong>：<span id="dupModalCaseId" style="font-weight:700;"></span></div>
+      <div>• <strong>通報時間</strong>：<span id="dupModalTime"></span></div>
+      <div>• <strong>後送醫院</strong>：<span id="dupModalHospital"></span></div>
+      <div>• <strong>主訴摘要</strong>：<span id="dupModalCC"></span></div>
+    </div>
+    <p style="color:#334155; font-size:13.5px; font-weight:600; margin:0 0 20px; line-height:1.5;">
+      請問這是「<strong>同病患全新第二次救護出勤</strong>」，還是「<strong>同仁已輸入過的重複案件</strong>」？
+    </p>
+    <div style="display:flex; gap:12px; justify-content:flex-end;">
+      <button type="button" onclick="closeDuplicateWarningModal()" style="flex:1; padding:12px; background:#f1f5f9; border:1px solid var(--border); border-radius:12px; font-size:14px; font-weight:600; color:#475569; cursor:pointer;">
+        ✕ 取消起單 (避免重複)
+      </button>
+      <button type="button" onclick="confirmProceedDuplicate()" style="flex:1; padding:12px; background:#dc2626; color:#fff; border:none; border-radius:12px; font-size:14px; font-weight:700; cursor:pointer;">
+        ✓ 確認是新出勤，繼續建立
+      </button>
+    </div>
   </div>
 </div>
 
@@ -1173,6 +1205,149 @@
     return dateStr;
   };
 
+  window.formatRocInput = function(adDateStr) {
+    if (!adDateStr || adDateStr === '不詳' || adDateStr === '待確認') return '';
+    const parts = adDateStr.split('-');
+    if (parts.length === 3) {
+      const year = parseInt(parts[0], 10);
+      const month = String(parseInt(parts[1], 10)).padStart(2, '0');
+      const day = String(parseInt(parts[2], 10)).padStart(2, '0');
+      const rocYear = String(year - 1911).padStart(3, '0');
+      return `${rocYear}${month}${day}`;
+    }
+    return adDateStr;
+  };
+
+  let _matchedHistoryPatient = null;
+  let _confirmedDuplicateCase = false;
+
+  window.handlePidInput = function(val) {
+    const rawVal = (val || '').trim().toUpperCase();
+    const tipBox = document.getElementById('pidTipBox');
+    if (!tipBox) return;
+
+    if (!rawVal || rawVal.length < 5) {
+      tipBox.style.display = 'none';
+      tipBox.innerHTML = '';
+      _matchedHistoryPatient = null;
+      return;
+    }
+
+    // 在 allTasks 中尋找符合此 PID 的最新紀錄
+    const matched = allTasks.filter(t => t.pid && t.pid.trim().toUpperCase() === rawVal)
+      .sort((a, b) => new Date(b.time || 0) - new Date(a.time || 0));
+
+    if (matched.length === 0) {
+      tipBox.style.display = 'none';
+      tipBox.innerHTML = '';
+      _matchedHistoryPatient = null;
+      return;
+    }
+
+    const latest = matched[0];
+    _matchedHistoryPatient = latest;
+
+    // 檢查是否有 24 小時內或 14 天內的案件
+    const nowTime = new Date().getTime();
+    let is24h = false;
+    let is14d = false;
+    let dupCase = null;
+
+    for (const c of matched) {
+      if (c.time) {
+        const tTime = new Date(c.time).getTime();
+        const diffDays = Math.abs(nowTime - tTime) / (1000 * 60 * 60 * 24);
+        if (diffDays <= 1) {
+          is24h = true;
+          dupCase = c;
+          break;
+        } else if (diffDays <= 14) {
+          is14d = true;
+          if (!dupCase) dupCase = c;
+        }
+      }
+    }
+
+    let warningHtml = '';
+    if (is24h && dupCase) {
+      warningHtml = `
+        <div style="margin-top:6px; padding:6px 10px; background:#fef2f2; border:1px solid #fecaca; border-radius:6px; color:#b91c1c; font-size:12px; font-weight:600;">
+          ⚠️ <strong>注意</strong>：該病患於 24 小時內已有案件【${dupCase.id}】(${formatDateTime(dupCase.time)}，${formatHospital(dupCase.transportHospital)})，請確認是否為重複通報！
+        </div>
+      `;
+    } else if (is14d && dupCase) {
+      warningHtml = `
+        <div style="margin-top:6px; padding:6px 10px; background:#fffbeb; border:1px solid #fde68a; border-radius:6px; color:#b45309; font-size:12px; font-weight:600;">
+          ⚠️ <strong>提醒</strong>：該病患於 14 天內曾有救護紀錄（前次：${formatDateTime(dupCase.time)}），系統將自動標記為短期重複個案。
+        </div>
+      `;
+    }
+
+    tipBox.style.display = 'block';
+    tipBox.innerHTML = `
+      <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:10px; padding:10px 12px; font-size:13px; color:#1e40af;">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+          <div>
+            💡 系統比對到歷史病患：<strong>${escapeHtml(latest.name)}</strong> (${formatGender(latest.gender)}｜${formatRocDate(latest.birth)})
+          </div>
+          <button type="button" onclick="applyAutoFillPatient()" style="padding:5px 12px; font-size:12px; font-weight:700; background:#2563eb; color:#fff; border:none; border-radius:6px; cursor:pointer; transition:background .2s;">
+            📋 一鍵帶入病患資料
+          </button>
+        </div>
+        ${warningHtml}
+      </div>
+    `;
+  };
+
+  window.applyAutoFillPatient = function() {
+    if (!_matchedHistoryPatient) return;
+    const p = _matchedHistoryPatient;
+    if (p.name) document.getElementById('name').value = p.name;
+    if (p.gender) document.getElementById('gender').value = p.gender;
+    if (p.birth) {
+      document.getElementById('birth').value = formatRocInput(p.birth);
+      if (typeof updateRocYear === 'function') updateRocYear();
+    }
+    const addrInput = document.getElementById('addr');
+    if (addrInput && !addrInput.value && p.addr) {
+      addrInput.value = p.addr;
+    }
+    const villageInput = document.getElementById('village');
+    if (villageInput && !villageInput.value && p.village) {
+      villageInput.value = p.village;
+      villageInput.readOnly = true;
+      villageInput.style.background = '#f1f5f9';
+    }
+
+    const tipBox = document.getElementById('pidTipBox');
+    if (tipBox) {
+      const origHtml = tipBox.innerHTML;
+      tipBox.innerHTML = `
+        <div style="background:#ecfdf5; border:1px solid #a7f3d0; border-radius:10px; padding:8px 12px; font-size:13px; color:#047857; font-weight:600; display:flex; align-items:center; gap:6px;">
+          ✅ 已成功為您帶入「${escapeHtml(p.name)}」之歷史病患資料！
+        </div>
+      `;
+      setTimeout(() => {
+        if (tipBox && tipBox.innerHTML.includes('已成功為您帶入')) {
+          tipBox.innerHTML = origHtml;
+        }
+      }, 4000);
+    }
+  };
+
+  window.closeDuplicateWarningModal = function() {
+    document.getElementById('duplicateWarningModal').style.display = 'none';
+    const btn = document.getElementById('createBtn');
+    if (btn) { btn.disabled = false; btn.textContent = '建立案件'; }
+    showGlobalLoading(false);
+  };
+
+  window.confirmProceedDuplicate = function() {
+    document.getElementById('duplicateWarningModal').style.display = 'none';
+    _confirmedDuplicateCase = true;
+    createCase();
+  };
+
   window.parseRocDate = function(rocStr) {
     if (!rocStr) return null;
     rocStr = rocStr.trim();
@@ -1633,6 +1808,31 @@
     if (!emsNote) { alert('請填寫「EMS 現場補充」'); return; }
     // --- 必填驗證結束 ---
 
+    // === 重複案件防呆二次確認 (24小時 / 同日) ===
+    if (!_confirmedDuplicateCase && !isUnknown) {
+      const curTime = time ? new Date(time).getTime() : new Date().getTime();
+      const existingSameDayCase = allTasks.find(other => {
+        const samePerson = (pid && other.pid && pid.trim().toUpperCase() === other.pid.trim().toUpperCase()) ||
+                           (!pid && name === other.name);
+        if (!samePerson) return false;
+        if (!other.time) return false;
+        const otherTime = new Date(other.time).getTime();
+        const diffDays = Math.abs(curTime - otherTime) / (1000 * 60 * 60 * 24);
+        return diffDays <= 1; // 24 小時以內
+      });
+
+      if (existingSameDayCase) {
+        document.getElementById('dupModalPatientName').textContent = name;
+        document.getElementById('dupModalCaseId').textContent = existingSameDayCase.id;
+        document.getElementById('dupModalTime').textContent = formatDateTime(existingSameDayCase.time);
+        document.getElementById('dupModalHospital').textContent = formatHospital(existingSameDayCase.transportHospital);
+        document.getElementById('dupModalCC').textContent = existingSameDayCase.cc || '無';
+        document.getElementById('duplicateWarningModal').style.display = 'flex';
+        return;
+      }
+    }
+    _confirmedDuplicateCase = false; // 重設防呆標記
+
     let birthAD = null;
     if (birth) {
       birthAD = window.parseRocDate(birth);
@@ -1728,6 +1928,8 @@
         document.getElementById('hospitalOther').style.display = 'none';
         document.getElementById('village').readOnly = true;
         document.getElementById('village').style.background = '#f1f5f9';
+        const tipBox = document.getElementById('pidTipBox');
+        if (tipBox) { tipBox.style.display = 'none'; tipBox.innerHTML = ''; }
       }
     } finally {
       showGlobalLoading(false);
@@ -2078,9 +2280,17 @@
       // 依使用者需求：結案後，案件平台就看不到這個病患訊息卡片
       if (t.report?.status === 'closed') return false;
 
-      const keywordHit = [t.id, t.name, t.cc, t.addr,
-        t.hospital?.diagnosis || '', t.hospital?.reporter || '']
-        .join(' ').toLowerCase().includes(q);
+      const keywordHit = [
+        t.id, 
+        t.name, 
+        t.pid || '', 
+        t.cc, 
+        t.addr, 
+        t.village || '',
+        formatHospital(t.transportHospital),
+        t.hospital?.diagnosis || '', 
+        t.hospital?.reporter || ''
+      ].join(' ').toLowerCase().includes(q);
       const statusHit = !statusFilter || t.report?.status === statusFilter;
       return keywordHit && statusHit;
     });
